@@ -1,0 +1,72 @@
+{
+  "name": "jmeter-mcp-server",
+  "version": "1.0.0",
+  "description": "A powerful Model Context Protocol (MCP) server for generating comprehensive JMeter test scripts with AI assistance",
+  "main": "src/index.js",
+  "type": "module",
+  "bin": {
+    "jmeter-mcp-server": "src/index.js"
+  },
+  "files": [
+    "src/",
+    "sample_data/",
+    "scripts/",
+    "EXAMPLE_PROMPTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --inspect src/index.js",
+    "test": "node test-server.js",
+    "test-api": "node test-api-schema.js",
+    "test-xml": "node test-xml-generation.js",
+    "test-inventree": "node test-inventree-generation.js",
+    "test-github": "node test-github-api.js",
+    "check": "node --check src/index.js",
+    "logs": "tail -f *.log",
+    "clean": "rm -rf output/*.jmx && rm -rf *.log",
+    "deploy": "npm run check && npm test",
+    "heroku-postbuild": "npm install",
+    "prepublishOnly": "npm run check && npm test"
+  },
+  "keywords": [
+    "jmeter",
+    "mcp",
+    "model-context-protocol",
+    "load-testing",
+    "performance-testing",
+    "api-testing",
+    "test-automation",
+    "test-generation",
+    "ai-testing",
+    "claude",
+    "anthropic"
+  ],
+  "author": "JMeter MCP Server Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/jmeter-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/jmeter-mcp-server/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/jmeter-mcp-server#readme",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "axios": "^1.6.0",
+    "cheerio": "^1.1.2",
+    "joi": "^17.9.0",
+    "puppeteer": "^21.11.0",
+    "swagger-parser": "^10.0.3",
+    "uuid": "^9.0.0",
+    "winston": "^3.17.0",
+    "xml2js": "^0.6.2",
+    "xmlbuilder2": "^3.1.1",
+    "yaml": "^2.3.4"
+  }
+}
