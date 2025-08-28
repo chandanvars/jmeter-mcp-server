@@ -245,7 +245,7 @@ export class JMXTemplates {
         '@testname': 'Response Assertion',
         '@enabled': 'true',
         collectionProp: {
-          '@name': 'Asserion.test_strings',
+          '@name': 'Assertion.test_strings',
           stringProp: assertions.patterns.map(p => ({ '#text': p }))
         },
         stringProp: [

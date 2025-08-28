@@ -8,8 +8,9 @@ import { UIFlowHandler } from './handlers/uiFlowHandler.js';
 import { FlowCrawler } from './crawler/flowCrawler.js';
 import { CorrelationEngine } from './correlation/correlationEngine.js';
 import { JMXGenerator } from './jmx/jmxGenerator.js';
-import { AIValidationService } from './ai/aiValidationService.js';
 import winston from 'winston';
+import fs from 'fs';
+import path from 'path';
 
 // Server configuration with UI support
 const serverConfig = {
@@ -41,11 +42,6 @@ const serverConfig = {
         name: 'Templates',
         description: 'Pre-built test scenarios and configurations',
         icon: '📋'
-      },
-      {
-        name: 'AI Validation',
-        description: 'AI-powered JMX analysis, validation, and enhancement',
-        icon: '🤖'
       }
     ],
     quickActions: [
@@ -109,8 +105,7 @@ const logger = winston.createLogger({
 
 // Register tools list handler with UI enhancements
 server.setRequestHandler(ListToolsRequestSchema, async () => {
-  return {
-    tools: [
+  const tools = [
     {
       name: 'generate_jmeter_script',
       description: 'Generate a comprehensive JMeter test script with advanced features including parameterization, correlation, timers, and result collection',
@@ -627,134 +622,72 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
         required: ['testName', 'baseUrl', 'flowDescription']
       }
-    },
-    {
-      name: 'validate_jmx_with_ai',
-      description: 'Analyze and enhance JMX files using AI to detect issues, suggest improvements, and provide auto-corrections',
-      category: 'AI Validation',
-      icon: '🤖',
-      tags: ['ai', 'validation', 'enhancement', 'quality-assurance', 'auto-correction'],
-      examples: [
-        {
-          name: 'Validate Test Plan',
-          description: 'AI analysis of JMX file for potential issues and improvements',
-          parameters: {
-            jmxContent: 'your-jmx-content-here',
-            autoEnhance: true,
-            outputToFile: true
-          }
-        },
-        {
-          name: 'Quick Analysis',
-          description: 'Fast AI check for common JMX issues',
-          parameters: {
-            jmxContent: 'your-jmx-content-here',
-            autoEnhance: false
-          }
-        }
-      ],
-      inputSchema: {
-        type: 'object',
-        title: 'AI JMX Validation Configuration',
-        properties: {
-          jmxContent: {
-            type: 'string',
-            title: 'JMX Content',
-            description: 'The JMX file content to analyze and validate',
-            ui: { 
-              widget: 'textarea', 
-              placeholder: 'Paste your JMX file content here...',
-              rows: 10
-            }
-          },
-          autoEnhance: {
-            type: 'boolean',
-            title: 'Auto-Enhancement',
-            description: 'Automatically apply AI-suggested improvements and corrections',
-            default: true,
-            ui: { widget: 'checkbox' }
-          },
-          outputToFile: {
-            type: 'boolean',
-            title: 'Save Enhanced File',
-            description: 'Save the AI-enhanced JMX file to output directory',
-            default: true,
-            ui: { widget: 'checkbox' }
-          },
-          analysisMode: {
-            type: 'string',
-            title: 'Analysis Mode',
-            description: 'Level of AI analysis to perform',
-            enum: ['quick', 'standard', 'comprehensive'],
-            enumDescriptions: [
-              'Quick scan for obvious issues',
-              'Standard analysis with common patterns',
-              'Deep analysis with advanced recommendations'
-            ],
-            default: 'standard',
-            ui: { widget: 'radio' }
-          }
-        },
-        required: ['jmxContent']
-      }
     }
-    ]
-  };
+    ];
+  
+  return { tools };
 });
 
-// Enhanced tool call handler with UI feedback
+// Enhanced tool call handler with modular success messages and robust error handling
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
     let result;
+    
     switch (name) {
       case 'generate_jmeter_script':
-        console.error(`🚀 Generating JMeter script: ${args.testName || 'Unnamed Test'}`);
         result = await jmeterHandler.generateJMeterScript(args);
-        console.error(`✅ Script generated successfully with ${args.requests?.length || 0} requests`);
-        return result;
+        break;
         
       case 'generate_from_api_schema':
-        console.error(`🔗 Generating from API schema: ${args.schemaUrl}`);
         result = await jmeterHandler.generateFromApiSchema(args);
-        console.error(`✅ API schema script generated successfully`);
-        return result;
+        break;
         
       case 'generate_inventree_test':
-        console.error(`📦 Generating InvenTree test plan`);
         result = await jmeterHandler.generateInventreeTestPlan(args);
-        console.error(`✅ InvenTree test plan generated successfully`);
-        return result;
+        break;
         
       case 'get_templates':
-        console.error(`📋 Fetching template: ${args.templateType || 'default'}`);
         result = await templateHandler.getTemplate(args);
-        console.error(`✅ Template retrieved successfully`);
-        return result;
+        break;
         
       case 'generate_ui_flow_script':
-        console.error(`🌐 Generating UI flow script: ${args.testName || 'Unnamed Flow Test'}`);
         result = await generateUIFlowScript(args);
-        console.error(`✅ UI flow script generated successfully from flow description`);
-        return result;
-        
-      case 'validate_jmx_with_ai':
-        console.error(`🤖 Starting AI validation of JMX file...`);
-        result = await validateJMXWithAI(args);
-        console.error(`✅ AI validation completed successfully`);
-        return result;
+        break;
         
       default:
-        throw new Error(`Unknown tool: ${name}. Available tools: generate_jmeter_script, generate_from_api_schema, generate_inventree_test, get_templates, generate_ui_flow_script, validate_jmx_with_ai`);
+        throw new Error(`Unknown tool: ${name}. Available tools: generate_jmeter_script, generate_from_api_schema, generate_inventree_test, get_templates, generate_ui_flow_script`);
     }
-  } catch (error) {
-    console.error(`❌ Error executing tool '${name}': ${error.message}`);
+
+    // Ensure result has proper structure
+    if (!result) {
+      throw new Error(`Tool ${name} returned null or undefined result`);
+    }
+
+    // If result is already in MCP format (has content array), return it directly
+    if (result.content && Array.isArray(result.content)) {
+      return result;
+    }
+
+    // Otherwise, wrap the result in MCP format
     return {
       content: [
         {
           type: 'text',
-          text: `❌ **Error in ${name}**\n\n${error.message}\n\n**Troubleshooting:**\n- Check that all required parameters are provided\n- Ensure URLs are valid and accessible\n- Verify CSV files exist if using data parameterization\n- For API schema tools, ensure the schema URL is accessible and valid`
+          text: typeof result === 'string' ? result : JSON.stringify(result, null, 2)
+        }
+      ]
+    };
+    
+  } catch (error) {
+    console.error(`Error in tool ${name}:`, error);
+    
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ Error in ${name}: ${error.message}\n\nStack trace: ${error.stack}`
         }
       ],
       isError: true
@@ -772,7 +705,7 @@ async function generateUIFlowScript(args) {
     
     logger.info('Starting UI flow script generation from prompt...');
     
-    // Generate the JMX content using prompt-based approach with AI validation
+    // Generate the JMX content using prompt-based approach
     const result = await uiFlowHandler.generateUIFlowScript({
       baseUrl,
       flowDescription,
@@ -784,7 +717,7 @@ async function generateUIFlowScript(args) {
       }
     });
 
-    // Return the content from the UI Flow Handler which includes AI validation
+    // Return the content from the UI Flow Handler
     return {
       content: result.content
     };
@@ -813,121 +746,6 @@ ${error.message}
   }
 }
 
-// AI JMX Validation Function
-async function validateJMXWithAI(args) {
-  const { jmxContent, autoEnhance = true, outputToFile = true, analysisMode = 'standard' } = args;
-
-  try {
-    // Initialize AI Validation Service
-    const aiValidationService = new AIValidationService();
-    
-    logger.info(`Starting AI validation in ${analysisMode} mode...`);
-    
-    let result;
-    
-    if (autoEnhance) {
-      // Full validation with auto-correction
-      result = await aiValidationService.validateWithAI(jmxContent, {
-        mode: analysisMode,
-        autoCorrect: true,
-        outputToFile: outputToFile
-      });
-    } else {
-      // Analysis only without auto-correction
-      result = await aiValidationService.analyzeJMX(jmxContent, analysisMode);
-    }
-
-    // Format issues for display
-    const issuesText = result.issues.length > 0 
-      ? result.issues.map((issue, index) => 
-          `${index + 1}. **${issue.type.toUpperCase()}** (Severity: ${issue.severity})
-   - **Issue:** ${issue.description}
-   - **Location:** ${issue.element}
-   ${issue.suggestion ? `- **Suggestion:** ${issue.suggestion}` : ''}
-   ${issue.corrected ? `- **✅ Auto-corrected:** ${issue.correctionApplied}` : ''}`
-        ).join('\n\n')
-      : '✅ No issues detected - your JMX file looks great!';
-
-    const enhancementsText = result.enhancements?.length > 0
-      ? result.enhancements.map((enhancement, index) =>
-          `${index + 1}. **${enhancement.type}:** ${enhancement.description}`
-        ).join('\n')
-      : 'No additional enhancements suggested';
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `🤖 **AI JMX Validation Complete!**
-
-**Analysis Mode:** ${analysisMode.toUpperCase()}
-**Auto-Enhancement:** ${autoEnhance ? 'Enabled' : 'Disabled'}
-**Performance Score:** ${result.performanceScore}/100
-
-## 📊 Validation Summary
-- **Total Issues Found:** ${result.issues.length}
-- **Critical Issues:** ${result.issues.filter(i => i.severity === 'critical').length}
-- **Warnings:** ${result.issues.filter(i => i.severity === 'warning').length}
-- **Suggestions:** ${result.issues.filter(i => i.severity === 'suggestion').length}
-${autoEnhance ? `- **Auto-Corrections Applied:** ${result.issues.filter(i => i.corrected).length}` : ''}
-
-## 🔍 Detailed Analysis
-
-### Issues Detected:
-${issuesText}
-
-${result.enhancements ? `### 🚀 Enhancement Suggestions:
-${enhancementsText}` : ''}
-
-## 📈 Performance Analysis
-${result.performanceAnalysis || 'Performance analysis completed successfully'}
-
-${autoEnhance && result.enhancedJmxContent ? `## ✨ Enhanced JMX Available
-The AI has automatically corrected issues and applied optimizations.
-${outputToFile ? `Enhanced file saved to output directory.` : 'Enhanced content included below.'}` : ''}
-
-**AI Validation powered by advanced pattern recognition and JMeter best practices** 🎯`
-        }
-      ].concat(
-        autoEnhance && result.enhancedJmxContent ? [
-          {
-            type: 'resource',
-            resource: {
-              uri: `file://enhanced_${Date.now()}.jmx`,
-              mimeType: 'application/xml',
-              text: result.enhancedJmxContent
-            }
-          }
-        ] : []
-      )
-    };
-  } catch (error) {
-    logger.error('Error in AI JMX validation:', error);
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `❌ **AI Validation Error:**
-          
-${error.message}
-
-**Troubleshooting:**
-- Ensure the JMX content is valid XML format
-- Check that the content is a properly formatted JMeter test plan
-- Try with a smaller JMX file first to test the validation
-- Verify the analysisMode parameter is one of: quick, standard, comprehensive
-
-**Example usage:**
-- jmxContent: Valid JMeter test plan XML content
-- autoEnhance: true/false (enable automatic corrections)
-- outputToFile: true/false (save enhanced file)
-- analysisMode: "quick", "standard", or "comprehensive"`
-        }
-      ]
-    };
-  }
-}
-
 // Startup function with enhanced UI information
 async function main() {
   try {
@@ -940,17 +758,27 @@ async function main() {
     console.error(`📂 Available Categories: ${serverConfig.ui.categories.map(c => c.name).join(', ')}`);
     console.error(`⚡ Quick Actions: ${serverConfig.ui.quickActions.length} available`);
     
+    // Display all available tools
+    console.error(`🛠️  Available MCP Tools:`);
+    console.error(`   1. generate_jmeter_script - Generate comprehensive JMeter test scripts`);
+    console.error(`   2. generate_from_api_schema - Generate tests from API schema/Swagger`);
+    console.error(`   3. generate_inventree_test - Generate InvenTree API test plans`);
+    console.error(`   4. get_templates - Get pre-built JMeter test templates`);
+    console.error(`   5. generate_ui_flow_script - Generate tests from natural language UI flows`);
+    
+    console.error(`📁 Output Monitoring: Enabled (./output, ./src/output, ./)`);
+    console.error(`🔄 Auto-stop on file generation: Enabled`);
+    
     const transport = new StdioServerTransport();
     await server.connect(transport);
     
     console.error('🎯 JMeter MCP Server successfully started!');
     console.error('💡 Ready to generate JMeter test scripts via MCP protocol');
     console.error('🔗 Connect via Claude Desktop, VS Code MCP extension, or custom MCP client');
-    console.error('📖 Use "generate_jmeter_script" to create test plans or "get_templates" for examples');
+    console.error('📖 Use any of the 5 available tools to create comprehensive test plans');
     
   } catch (error) {
-    console.error(`💥 Failed to start server: ${error.message}`);
-    console.error('🔍 Check your MCP client configuration and try again');
+    console.error(`Failed to start server: ${error.message}`);
     process.exit(1);
   }
 }
@@ -961,12 +789,7 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
-  console.error('👋 JMeter MCP Server terminated');
-  process.exit(0);
-});
-
 main().catch((error) => {
-  console.error(`💥 Unexpected error: ${error.message}`);
+  console.error(`Unexpected error: ${error.message}`);
   process.exit(1);
 });

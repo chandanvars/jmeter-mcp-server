@@ -169,6 +169,9 @@ export class SamplerGenerator {
       case 'jsonPath':
         this.addJSONAssertion(parent, assertion);
         break;
+      case 'contains':
+        this.addContainsAssertion(parent, assertion.value);
+        break;
     }
   }
 
@@ -180,7 +183,7 @@ export class SamplerGenerator {
       enabled: 'true'
     });
 
-    const collectionProp = assertion.ele('collectionProp', { name: 'Asserion.test_strings' });
+    const collectionProp = assertion.ele('collectionProp', { name: 'Assertion.test_strings' });
     collectionProp.ele('stringProp', { name: String(code.charCodeAt(0) + code.length) }).txt(code);
     
     assertion.ele('stringProp', { name: 'Assertion.custom_message' });
@@ -213,6 +216,22 @@ export class SamplerGenerator {
     jsonAssertion.ele('boolProp', { name: 'JSONVALIDATION' }).txt(assertion.expectedValue ? 'true' : 'false');
     jsonAssertion.ele('boolProp', { name: 'EXPECT_NULL' }).txt('false');
     jsonAssertion.ele('boolProp', { name: 'INVERT' }).txt('false');
+  }
+
+  addContainsAssertion(parent, text) {
+    const assertion = parent.ele('ResponseAssertion', {
+      guiclass: 'AssertionGui',
+      testclass: 'ResponseAssertion',
+      testname: 'Contains Assertion',
+      enabled: 'true'
+    });
+
+    assertion.ele('collectionProp', { name: 'Assertion.test_strings' })
+      .ele('stringProp', { name: '0' }).txt(text);
+    assertion.ele('stringProp', { name: 'Assertion.custom_message' }).txt('');
+    assertion.ele('stringProp', { name: 'Assertion.test_field' }).txt('Assertion.response_data');
+    assertion.ele('boolProp', { name: 'Assertion.assume_success' }).txt('false');
+    assertion.ele('intProp', { name: 'Assertion.test_type' }).txt('16'); // Contains
   }
 
   addBeanShellPreProcessor(parent, script) {
