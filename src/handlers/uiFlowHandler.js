@@ -7,14 +7,12 @@ import { PromptToFlowParser } from '../parsers/promptToFlowParser.js';
 import { JMXGenerator } from '../generators/jmxGenerator.js';
 import { validateTestPlan } from '../utils/validator.js';
 import { FileWriter } from '../utils/fileWriter.js';
-import { AIValidationService } from '../ai/aiValidationService.js';
 
 export class UIFlowHandler {
   constructor() {
     this.promptParser = new PromptToFlowParser();
     this.jmxGenerator = new JMXGenerator();
     this.fileWriter = new FileWriter();
-    this.aiValidationService = new AIValidationService();
   }
 
   /**
@@ -84,90 +82,18 @@ export class UIFlowHandler {
       // Write JMX file to output directory
       const jmxFilePath = this.fileWriter.writeJMXFile(jmxFileName, updatedJmxContent);
 
-      // 🤖 AUTOMATIC AI VALIDATION AND ENHANCEMENT FOR UI FLOWS
-      let aiValidationReport = '';
-      let finalJMXContent = updatedJmxContent;
-      let finalJMXFileName = jmxFileName;
-      let enhancedJMXInfo = null;
-      
-      try {
-        console.log('🌐 Running automatic AI validation for UI flow...');
-        
-        // Run AI validation with auto-correction enabled for UI flows
-        const aiValidation = await this.aiValidationService.validateWithAI(updatedJmxContent, {
-          mode: 'comprehensive',
-          autoCorrect: true,
-          outputToFile: false
-        });
-        
-        // Check if enhancements were applied
-        if (aiValidation.enhancedJmxContent && aiValidation.enhancedJmxContent !== updatedJmxContent) {
-          console.log('✅ AI enhancements applied to UI flow test');
-          
-          // Save the enhanced version as the final output
-          const enhancedFileName = jmxFileName.replace('.jmx', '_ai_enhanced.jmx');
-          const enhancedFilePath = this.fileWriter.writeJMXFile(enhancedFileName, aiValidation.enhancedJmxContent);
-          
-          // Update final content and filename
-          finalJMXContent = aiValidation.enhancedJmxContent;
-          finalJMXFileName = enhancedFileName;
-          
-          enhancedJMXInfo = {
-            enhancedFilePath,
-            originalPath: jmxFilePath,
-            enhancedFileName,
-            originalFileName: jmxFileName
-          };
-        }
-        
-        // Generate UI-specific validation report
-        const issuesFixed = aiValidation.issues.filter(issue => issue.corrected).length;
-        const totalIssues = aiValidation.issues.length;
-        
-        aiValidationReport = `
-🤖 **UI Flow AI Validation Results**
-
-**Performance Score:** ${aiValidation.performanceScore}/100
-**UI Actions Analyzed:** ${parseResult.steps.length}
-**Issues Found:** ${totalIssues}
-**Issues Auto-Fixed:** ${issuesFixed}
-
-${totalIssues > 0 ? `
-**Issues Detected:**
-${aiValidation.issues.map((issue, index) => 
-  `${index + 1}. **${issue.type}** ${issue.corrected ? '✅ FIXED' : '⚠️'}
-   - ${issue.description}
-   ${issue.corrected ? `   - Resolution: ${issue.correctionApplied}` : ''}
-   - Severity: ${issue.severity}`
-).join('\n')}
-` : '✅ UI flow test is well-structured!'}
-
-${enhancedJMXInfo ? `
-🌐 **UI Flow Enhanced**
-Your UI test has been automatically optimized for better browser simulation.
-- Original: ${enhancedJMXInfo.originalFileName}
-- Enhanced: ${enhancedJMXInfo.enhancedFileName} ← **Final Output**
-` : ''}`;
-
-      } catch (aiError) {
-        console.warn('⚠️ UI Flow AI validation failed:', aiError.message);
-        aiValidationReport = `\n⚠️ **AI Validation Failed**
-Error: ${aiError.message}
-UI flow JMX generated successfully without AI enhancements.`;
-      }
-
       // Prepare response
       const content = [
         {
           type: 'text',
-          text: this.generateSuccessMessage(testPlan, parseResult.steps, enhancedJMXInfo ? enhancedJMXInfo.enhancedFilePath : jmxFilePath, csvFileName, aiValidationReport, enhancedJMXInfo)
+          text: this.generateSuccessMessage(testPlan, parseResult.steps, jmxFilePath, csvFileName)
         },
         {
           type: 'resource',
           resource: {
-            name: enhancedJMXInfo ? enhancedJMXInfo.enhancedFileName : jmxFileName,
+            name: jmxFileName,
             mimeType: 'application/xml',
-            blob: finalJMXContent
+            blob: updatedJmxContent
           }
         }
       ];
@@ -194,7 +120,7 @@ UI flow JMX generated successfully without AI enhancements.`;
       return { 
         parsedSteps: parseResult.steps,
         generatedRequests: httpRequests,
-        jmxContent: finalJMXContent,
+        jmxContent: updatedJmxContent,
         content 
       };
 
@@ -495,10 +421,10 @@ UI flow JMX generated successfully without AI enhancements.`;
   }
 
   /**
-   * Generate success message with comprehensive AI validation details
+   * Generate success message
    */
-  generateSuccessMessage(testPlan, steps, jmxFilePath, csvFileName, aiValidationReport = '', enhancedJMXInfo = null) {
-    const fileName = enhancedJMXInfo ? enhancedJMXInfo.enhancedFileName : jmxFilePath.split(/[/\\]/).pop();
+  generateSuccessMessage(testPlan, steps, jmxFilePath, csvFileName) {
+    const fileName = jmxFilePath.split(/[/\\]/).pop();
     
     // Generate dynamic step breakdown for display
     const stepBreakdown = steps.map((step, index) => {
@@ -564,9 +490,7 @@ ${stepBreakdown}
 **Generated HTTP Requests:**
 ${requestBreakdown}
 
-The generated JMX file is ready for use with JMeter ✅
-
-${aiValidationReport || ''}`;
+The generated JMX file is ready for use with JMeter ✅`;
   }
 
   /**

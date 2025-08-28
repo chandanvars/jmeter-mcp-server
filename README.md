@@ -241,6 +241,24 @@ npm start
 ```
 
 ### VS Code Integration
+
+**Method 1: Workspace Configuration (Recommended)**
+Create a `.vscode/mcp.json` file in your workspace:
+```json
+{
+  "servers": {
+    "jmeter-mcp": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}
+```
+
+**Method 2: Global Settings**
 Add to your VS Code `settings.json`:
 ```json
 {

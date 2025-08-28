@@ -20,7 +20,7 @@ const testPlanSchema = Joi.object({
       ),
       assertions: Joi.array().items(
         Joi.object({
-          type: Joi.string().valid('responseCode', 'responseTime', 'jsonPath').required(),
+          type: Joi.string().valid('responseCode', 'responseTime', 'jsonPath', 'contains').required(),
           value: Joi.string(),
           jsonPath: Joi.string(),
           expectedValue: Joi.string()

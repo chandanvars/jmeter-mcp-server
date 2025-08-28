@@ -50,7 +50,6 @@ export class FileWriter {
     
     const fullPath = path.join(this.outputDir, filename);
     fs.writeFileSync(fullPath, content, 'utf8');
-    console.log(`✅ JMX file written: ${fullPath}`);
     return fullPath;
   }
 
@@ -68,7 +67,6 @@ export class FileWriter {
     
     const fullPath = path.join(this.sampleDataDir, filename);
     fs.writeFileSync(fullPath, content, 'utf8');
-    console.log(`✅ CSV file written: ${fullPath}`);
     return fullPath;
   }
 

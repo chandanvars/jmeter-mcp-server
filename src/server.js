@@ -2,6 +2,9 @@ import { Server as MCPServer } from '@modelcontextprotocol/sdk/server/index.js';
 import { JMeterHandler } from './handlers/jmeterHandler.js';
 import { TemplateHandler } from './handlers/templateHandler.js';
 import { validateTestPlan } from './utils/validator.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 export class JMeterMCPServer {
   constructor() {
@@ -27,6 +30,9 @@ export class JMeterMCPServer {
         }
       }
     );
+
+    // Ensure output directories exist
+    this.ensureOutputDirectories();
 
     this.registerTools();
     this.registerResources();
@@ -376,6 +382,34 @@ export class JMeterMCPServer {
       console.error('Unhandled rejection at:', promise, 'reason:', reason);
       process.exit(1);
     });
+  }
+  
+  /**
+   * Ensure output directories exist
+   */
+  ensureOutputDirectories() {
+    try {
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const projectRoot = path.resolve(__dirname, '..');
+      
+      // Define output directories
+      const outputDir = path.join(projectRoot, 'output');
+      const sampleDataDir = path.join(projectRoot, 'sample_data');
+      
+      // Create directories if they don't exist
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+        console.log(`Created output directory: ${outputDir}`);
+      }
+      
+      if (!fs.existsSync(sampleDataDir)) {
+        fs.mkdirSync(sampleDataDir, { recursive: true });
+        console.log(`Created sample_data directory: ${sampleDataDir}`);
+      }
+    } catch (error) {
+      console.error(`Error creating output directories: ${error.message}`);
+    }
   }
 
   async generateJMeterScript(args) {
