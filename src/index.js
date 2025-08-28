@@ -7,7 +7,7 @@ import { TemplateHandler } from './handlers/templateHandler.js';
 import { UIFlowHandler } from './handlers/uiFlowHandler.js';
 import { FlowCrawler } from './crawler/flowCrawler.js';
 import { CorrelationEngine } from './correlation/correlationEngine.js';
-import { JMXGenerator } from './jmx/jmxGenerator.js';
+import { FileMonitor } from './utils/fileMonitor.js';
 import winston from 'winston';
 import fs from 'fs';
 import path from 'path';
@@ -92,7 +92,11 @@ const templateHandler = new TemplateHandler();
 // Initialize UI script generation components
 const flowCrawler = new FlowCrawler();
 const correlationEngine = new CorrelationEngine();
-const jmxGenerator = new JMXGenerator();
+
+// Initialize file monitor to prevent AI-enhanced files
+const fileMonitor = new FileMonitor();
+fileMonitor.cleanupExistingFiles();
+fileMonitor.startMonitoring();
 
 // Logger configuration
 const logger = winston.createLogger({
@@ -717,6 +721,15 @@ async function generateUIFlowScript(args) {
       }
     });
 
+    // Add safety checks
+    if (!result) {
+      throw new Error('UI Flow Handler returned null result');
+    }
+    
+    if (!result.content) {
+      throw new Error('UI Flow Handler result missing content property');
+    }
+
     // Return the content from the UI Flow Handler
     return {
       content: result.content
@@ -786,6 +799,7 @@ async function main() {
 // Graceful shutdown handling
 process.on('SIGINT', () => {
   console.error('👋 Shutting down JMeter MCP Server gracefully...');
+  fileMonitor.stopMonitoring();
   process.exit(0);
 });
 

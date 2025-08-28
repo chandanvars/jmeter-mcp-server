@@ -81,6 +81,11 @@ export class UIFlowHandler {
 
       // Write JMX file to output directory
       const jmxFilePath = this.fileWriter.writeJMXFile(jmxFileName, updatedJmxContent);
+      
+      // Ensure file was written successfully
+      if (!jmxFilePath) {
+        throw new Error(`Failed to write JMX file: ${jmxFileName}`);
+      }
 
       // Prepare response
       const content = [
@@ -89,25 +94,20 @@ export class UIFlowHandler {
           text: this.generateSuccessMessage(testPlan, parseResult.steps, jmxFilePath, csvFileName)
         },
         {
-          type: 'resource',
-          resource: {
-            name: jmxFileName,
-            mimeType: 'application/xml',
-            blob: updatedJmxContent
-          }
+          type: 'file_reference',
+          name: 'jmx_file',
+          file_type: 'jmx',
+          path: jmxFilePath
         }
       ];
 
       // Include CSV file in response if generated
       if (csvDataSet && csvFileName) {
-        const csvContent = this.generateCSVContent(csvDataSet);
         content.push({
-          type: 'resource',
-          resource: {
-            name: csvFileName,
-            mimeType: 'text/csv',
-            blob: csvContent
-          }
+          type: 'file_reference',
+          name: 'csv_file',
+          file_type: 'csv',
+          path: this.fileWriter.getAbsoluteCSVPath(csvFileName)
         });
       }
 
@@ -118,10 +118,11 @@ export class UIFlowHandler {
       });
 
       return { 
-        parsedSteps: parseResult.steps,
-        generatedRequests: httpRequests,
-        jmxContent: updatedJmxContent,
-        content 
+        content,
+        filePaths: {
+          jmx: jmxFilePath,
+          csv: csvFileName ? this.fileWriter.getAbsoluteCSVPath(csvFileName) : null
+        }
       };
 
     } catch (error) {
@@ -424,7 +425,7 @@ export class UIFlowHandler {
    * Generate success message
    */
   generateSuccessMessage(testPlan, steps, jmxFilePath, csvFileName) {
-    const fileName = jmxFilePath.split(/[/\\]/).pop();
+    const fileName = jmxFilePath ? jmxFilePath.split(/[/\\]/).pop() : 'unknown_file.jmx';
     
     // Generate dynamic step breakdown for display
     const stepBreakdown = steps.map((step, index) => {

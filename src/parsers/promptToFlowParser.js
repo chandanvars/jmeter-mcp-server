@@ -60,6 +60,11 @@ export class PromptToFlowParser {
       return this.parseNavigateAction(originalSentence);
     }
     
+    // Search patterns
+    if (this.matchesPattern(cleanSentence, this.actionPatterns.search)) {
+      return this.parseSearchAction(originalSentence);
+    }
+    
     // Click patterns
     if (this.matchesPattern(cleanSentence, this.actionPatterns.click)) {
       return this.parseClickAction(originalSentence);
@@ -92,11 +97,16 @@ export class PromptToFlowParser {
       click: [
         /click|tap|press|select/,
         /choose|pick|hit/,
-        /activate|trigger/
+        /activate|trigger/,
+        /add to cart|add to basket/,
+        /proceed to|continue to/
+      ],
+      search: [
+        /search|find|look for|query/
       ],
       fill: [
         /enter|type|input|fill/,
-        /write|insert|add/,
+        /write.*in|insert.*in|add.*in/,  // More specific - require "in" context for add
         /provide|specify/
       ],
       submit: [
@@ -239,6 +249,44 @@ export class PromptToFlowParser {
 
   /**
    * Parse click action
+   */
+  /**
+   * Parse search action from sentence
+   */
+  parseSearchAction(sentence) {
+    // Extract search terms
+    let searchTerm = '';
+    const searchPatterns = [
+      /search\s+for\s+['"]?([^'"]+)['"]?/i,
+      /find\s+['"]?([^'"]+)['"]?/i,
+      /look\s+for\s+['"]?([^'"]+)['"]?/i,
+      /query\s+['"]?([^'"]+)['"]?/i
+    ];
+    
+    for (const pattern of searchPatterns) {
+      const match = sentence.match(pattern);
+      if (match) {
+        searchTerm = match[1];
+        break;
+      }
+    }
+    
+    // If no specific term found, default to "products"
+    if (!searchTerm) {
+      searchTerm = 'products';
+    }
+    
+    return {
+      action: 'fill',
+      selector: 'input[name="search"], #search, .search-input, [placeholder*="search"]',
+      fieldType: 'search',
+      data: { value: searchTerm },
+      description: `Search for "${searchTerm}"`
+    };
+  }
+
+  /**
+   * Parse click action from sentence
    */
   parseClickAction(sentence) {
     // Look for CSS selector patterns
@@ -485,9 +533,9 @@ export class PromptToFlowParser {
       return placeholder;
     });
 
-    // Split on sentence boundaries, but be more careful about periods in context
+    // Split on sentence boundaries, including commas for step separation
     const sentences = protectedText
-      .split(/[.!?]+/)
+      .split(/[.!?]+|,\s*(?=(?:visit|go|navigate|search|click|add|fill|enter|type|submit|login|wait|pause))/i)
       .map(s => s.trim())
       .filter(s => s.length > 0)
       .map(sentence => {
