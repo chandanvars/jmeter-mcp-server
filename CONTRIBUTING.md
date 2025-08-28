@@ -14,7 +14,7 @@ Thank you for your interest in contributing to the JMeter MCP Server! This docum
 
 1. **Fork and Clone**
 ```bash
-git clone https://github.com/YOUR_USERNAME/jmeter-mcp-server.git
+git clone https://github.com/chandanvars/jmeter-mcp-server.git
 cd jmeter-mcp-server
 ```
 

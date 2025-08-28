@@ -47,12 +47,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/jmeter-mcp-server.git"
+    "url": "https://github.com/chandanvars/jmeter-mcp-server.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/jmeter-mcp-server/issues"
+    "url": "https://github.com/chandanvars/jmeter-mcp-server/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/jmeter-mcp-server#readme",
+  "homepage": "https://github.com/chandanvars/jmeter-mcp-server#readme",
   "engines": {
     "node": ">=16.0.0"
   },

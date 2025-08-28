@@ -632,13 +632,13 @@ npm install -g jmeter-mcp-server
 
 **Via GitHub:**
 ```bash
-git clone https://github.com/YOUR_USERNAME/jmeter-mcp-server.git
+git clone https://github.com/chandanvars/jmeter-mcp-server.git
 cd jmeter-mcp-server
 npm install
 ```
 
 **Via GitHub Releases:**
-Download the latest release from [GitHub Releases](https://github.com/YOUR_USERNAME/jmeter-mcp-server/releases)
+Download the latest release from [GitHub Releases](https://github.com/chandanvars/jmeter-mcp-server/releases)
 
 ### 🔧 Development Setup
 
@@ -646,7 +646,7 @@ For contributors and developers:
 
 ```bash
 # Clone and setup for development
-git clone https://github.com/YOUR_USERNAME/jmeter-mcp-server.git
+git clone https://github.com/chandanvars/jmeter-mcp-server.git
 cd jmeter-mcp-server
 npm install
 
@@ -683,8 +683,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🆘 Support
 
 For support and questions:
-- 🐛 [Create an issue](https://github.com/YOUR_USERNAME/jmeter-mcp-server/issues/new/choose) for bugs or feature requests
-- 💬 [Start a discussion](https://github.com/YOUR_USERNAME/jmeter-mcp-server/discussions) for questions and ideas
+- 🐛 [Create an issue](https://github.com/chandanvars/jmeter-mcp-server/issues/new/choose) for bugs or feature requests
+- 💬 [Start a discussion](https://github.com/chandanvars/jmeter-mcp-server/discussions) for questions and ideas
 - 📚 Check the [documentation](docs/) for detailed guides
 - 🔍 Review the [examples](EXAMPLE_PROMPTS.md) for implementation patterns
 - 📖 Read the [deployment guide](DEPLOYMENT.md) for hosting instructions
@@ -709,9 +709,9 @@ For support and questions:
 
 ## 📊 Project Stats
 
-[![GitHub stars](https://img.shields.io/github/stars/YOUR_USERNAME/jmeter-mcp-server?style=social)](https://github.com/YOUR_USERNAME/jmeter-mcp-server/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/YOUR_USERNAME/jmeter-mcp-server?style=social)](https://github.com/YOUR_USERNAME/jmeter-mcp-server/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/YOUR_USERNAME/jmeter-mcp-server)](https://github.com/YOUR_USERNAME/jmeter-mcp-server/issues)
+[![GitHub stars](https://img.shields.io/github/stars/chandanvars/jmeter-mcp-server?style=social)](https://github.com/chandanvars/jmeter-mcp-server/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/chandanvars/jmeter-mcp-server?style=social)](https://github.com/chandanvars/jmeter-mcp-server/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/chandanvars/jmeter-mcp-server)](https://github.com/chandanvars/jmeter-mcp-server/issues)
 [![NPM downloads](https://img.shields.io/npm/dm/jmeter-mcp-server)](https://www.npmjs.com/package/jmeter-mcp-server)
 
 ---

@@ -53,7 +53,7 @@ git commit -m "Initial commit: JMeter MCP Server v1.0.0
 
 ```bash
 # Add GitHub remote (replace YOUR_USERNAME with your actual GitHub username)
-git remote add origin https://github.com/YOUR_USERNAME/jmeter-mcp-server.git
+git remote add origin https://github.com/chandanvars/jmeter-mcp-server.git
 
 # Push to GitHub
 git push -u origin main

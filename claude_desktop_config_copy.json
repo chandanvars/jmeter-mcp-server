@@ -3,7 +3,7 @@
     "jmeter-generator": {
       "command": "node",
       "args": [
-        "c:/Users/Chandan_Varshney/Desktop/jmeter-mcp-server/jmeter-mcp-server/src/index.js"
+        "c:/Users/ChandanVarshney/VSCodeProjects/jmeter-mcp-server/src/index.js"
       ],
       "env": {
         "NODE_ENV": "production"

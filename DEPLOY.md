@@ -9,7 +9,7 @@
 
 ### 1. Clone & Setup
 ```bash
-git clone https://github.com/YOUR_USERNAME/jmeter-mcp-server.git
+git clone https://github.com/chandanvars/jmeter-mcp-server.git
 cd jmeter-mcp-server
 npm install
 ```
