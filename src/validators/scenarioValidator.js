@@ -568,6 +568,9 @@ export class ScenarioValidator {
     // Find all fill/enter actions and ensure they have values
     let modifiedFlow = flow;
     
+    // Handle structured form data patterns (like "- First name: John")
+    modifiedFlow = this.handleStructuredFormData(modifiedFlow, corrections);
+    
     // Pattern to catch various fill scenarios
     const fillPatterns = [
       { pattern: /\b(enter|type|input|fill)\s+([^"'\n.]+?)(?=\s*(?:in|into|to|\.|,|and|then|$))/gi, defaultValue: 'test data' },
@@ -611,6 +614,53 @@ export class ScenarioValidator {
       }
     }
 
+    return modifiedFlow;
+  }
+
+  /**
+   * Handle structured form data patterns like "- First name: John"
+   */
+  handleStructuredFormData(flow, corrections) {
+    let modifiedFlow = flow;
+    
+    // Pattern to find structured form data lists
+    const structuredDataPattern = /Fill\s+[\w\s]+\s+form\s+with\s+[\w\s]+:\s*((?:\s*-\s*[^:]+:\s*[^\n]+\n?)+)/gi;
+    
+    modifiedFlow = modifiedFlow.replace(structuredDataPattern, (match, dataList) => {
+      corrections.push('Converted structured form data to individual fill actions');
+      
+      // Extract individual field:value pairs
+      const fieldValuePairs = dataList.match(/-\s*([^:]+):\s*([^\n]+)/g) || [];
+      
+      const fillActions = fieldValuePairs.map(pair => {
+        const match = pair.match(/-\s*([^:]+):\s*([^\n]+)/);
+        if (match) {
+          const fieldName = match[1].trim().toLowerCase().replace(/\s+/g, '');
+          const value = match[2].trim();
+          return `Fill ${fieldName} field with "${value}".`;
+        }
+        return '';
+      }).filter(action => action);
+      
+      return fillActions.join(' ');
+    });
+    
+    // Handle remaining "Fill X: Y" patterns not in lists
+    modifiedFlow = modifiedFlow.replace(/Fill\s+([^:]+):\s*([^\.\n]+)/gi, (match, field, value) => {
+      const fieldName = field.trim().toLowerCase().replace(/\s+/g, '');
+      const fieldValue = value.trim();
+      corrections.push(`Converted direct field assignment to fill action: ${match}`);
+      return `Fill ${fieldName} field with "${fieldValue}"`;
+    });
+    
+    // Handle "- Field: Value" patterns that weren't caught above
+    modifiedFlow = modifiedFlow.replace(/-\s*([^:]+):\s*([^\n]+)/g, (match, field, value) => {
+      const fieldName = field.trim().toLowerCase().replace(/\s+/g, '');
+      const fieldValue = value.trim();
+      corrections.push(`Converted list item to fill action: ${match}`);
+      return `Fill ${fieldName} field with "${fieldValue}".`;
+    });
+    
     return modifiedFlow;
   }
 
