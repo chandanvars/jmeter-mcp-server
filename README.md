@@ -1,6 +1,6 @@
 # 🎯 JMeter MCP Server
 
-A powerful Model Context Protocol (MCP) server for generating Apache JMeter test scripts with AI assistance, advanced parameterization, correlation capabilities, and comprehensive testing support.
+A powerful Model Context Protocol (MCP) server for generating Apache JMeter test scripts, advanced parameterization, correlation capabilities, and comprehensive testing support.
 
 [![GitHub stars](https://img.shields.io/github/stars/chandanvars/jmeter-mcp-server?style=social)](https://github.com/chandanvars/jmeter-mcp-server/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/chandanvars/jmeter-mcp-server?style=social)](https://github.com/chandanvars/jmeter-mcp-server/network/members)
@@ -8,11 +8,11 @@ A powerful Model Context Protocol (MCP) server for generating Apache JMeter test
 
 ## 🌟 Overview
 
-The JMeter MCP Server is a comprehensive testing solution that integrates with MCP-compatible clients (like Claude Desktop, VS Code) to generate sophisticated JMeter test plans. It combines traditional performance testing with modern AI assistance to create production-ready test scripts with minimal effort.
+The JMeter MCP Server is a comprehensive testing solution that integrates with MCP-compatible clients (like Claude Desktop, VS Code) to generate sophisticated JMeter test plans. It combines traditional performance testing with modern automation to create production-ready test scripts with minimal effort.
 
 ## 🔧 NEW: Scenario Validator
 
-**Revolutionary Auto-Correction Technology** - The built-in Scenario Validator automatically fixes and enhances any UI flow description, ensuring reliable JMX generation from any input:
+**Advanced Auto-Correction Technology** - The built-in Scenario Validator automatically fixes and enhances any UI flow description, ensuring reliable JMX generation from any input:
 
 ✅ **Smart Typo Correction**: Fixes common misspellings ("loggin" → "login", "clik" → "click")  
 ✅ **Flow Enhancement**: Expands minimal descriptions ("login" → complete login flow)  
@@ -176,8 +176,8 @@ Access professionally crafted templates:
 {"templateType": "rest_api"}
 ```
 
-### 6. 🤖 **validate_jmx_with_ai** - AI-Powered Test Validation
-Enhance and validate JMeter scripts with AI assistance:
+### 6. 🔧 **validate_jmx** - Test Validation
+Enhance and validate JMeter scripts:
 
 **Features:**
 - Performance score analysis
@@ -197,10 +197,10 @@ Enhance and validate JMeter scripts with AI assistance:
 }
 ```
 
-## � Advanced Features
+## 🔧 Advanced Features
 
-### 🤖 **AI-Powered Enhancements**
-- **Automatic Validation**: Every generated test is analyzed by AI
+### 🛠️ **Automated Enhancements**
+- **Automatic Validation**: Every generated test is analyzed for best practices
 - **Performance Optimization**: Auto-tuning for better performance
 - **Best Practice Application**: Industry standards automatically applied
 - **Issue Detection**: Proactive identification of potential problems
@@ -209,7 +209,7 @@ Enhance and validate JMeter scripts with AI assistance:
 ### 📁 **Intelligent File Organization**
 - **JMX Files** → `output/` directory (ready for JMeter)
 - **CSV Data** → `sample_data/` directory (test parameters)
-- **Enhanced Versions** → `*_ai_enhanced.jmx` (AI-optimized files)
+- **Enhanced Versions** → `*_enhanced.jmx` (optimized files)
 - **Relative Paths** → Automatic cross-platform compatibility
 
 ### 🔄 **Correlation Engine**
@@ -643,7 +643,7 @@ jmeter-mcp-server/
 #### **Output Management (`output/`, `sample_data/`)**
 - **Generated Files**: JMX test plans ready for JMeter execution
 - **Test Data**: CSV files for parameterized testing
-- **Enhanced Versions**: AI-optimized test scripts
+- **Enhanced Versions**: Optimized test scripts
 - **Sample Data**: Example datasets for quick testing
 
 #### **Development Tools (`scripts/`, `.vscode/`)**
@@ -678,7 +678,7 @@ User Request → MCP Server → Handler → Validator → Parser → Generator �
 3. **Validation**: Input validated and auto-corrected if needed
 4. **Parsing**: Natural language converted to structured data
 5. **Generation**: JMX XML generated with proper structure
-6. **Enhancement**: Optional AI-powered optimization
+6. **Enhancement**: Optional automated optimization
 7. **Output**: Files written to output directory with success notification
 
 ## 🎮 Example Prompts
@@ -718,7 +718,7 @@ NODE_ENV=production
 PORT=3000
 MCP_SERVER_NAME=jmeter-generator
 LOG_LEVEL=info
-AI_VALIDATION_ENABLED=true
+VALIDATION_ENABLED=true
 MAX_FILE_SIZE=50MB
 OUTPUT_DIRECTORY=./output
 SAMPLE_DATA_DIRECTORY=./sample_data
@@ -726,7 +726,7 @@ SAMPLE_DATA_DIRECTORY=./sample_data
 
 ### Custom Settings
 Edit `src/config/settings.js`:
-- AI validation timeout settings
+- Validation timeout settings
 - File size limits
 - Output directory preferences
 - Template customizations
@@ -736,7 +736,7 @@ Edit `src/config/settings.js`:
 ### Built-in Monitoring
 - **Request Rate**: Tracks generation requests per minute
 - **Success Rate**: Monitors successful test generation
-- **AI Validation**: Tracks enhancement application rate
+- **Validation Rate**: Tracks enhancement application rate
 - **File Output**: Monitors generated file sizes and counts
 
 ### Health Checks
@@ -843,8 +843,8 @@ npm run check
 # Start with debug logging
 NODE_ENV=development npm run dev
 
-# Enable verbose AI logging
-AI_DEBUG=true npm start
+# Enable verbose logging
+DEBUG=true npm start
 ```
 
 ## 📚 Documentation
@@ -876,7 +876,7 @@ AI_DEBUG=true npm start
 - [ ] GraphQL introspection and testing
 - [ ] Database performance testing
 - [ ] Kubernetes deployment templates
-- [ ] Enhanced AI validation models
+- [ ] Enhanced validation models
 
 ### 🔮 Future Plans
 - [ ] Selenium WebDriver integration
@@ -907,7 +907,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **🎯 Made with ❤️ for the testing community by [Chandan Varshney](https://github.com/chandanvars)**
 
-*Transform your testing workflow with AI-powered JMeter generation!*
+*Transform your testing workflow with automated JMeter generation!*
 
 **Parameters:**
 - `testName` (string): Name of the test plan
