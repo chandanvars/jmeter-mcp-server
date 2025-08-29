@@ -268,7 +268,9 @@ npm install
 npm start
 ```
 
-### VS Code Integration
+### IDE Integration
+
+#### VS Code Integration
 
 **Method 1: Workspace Configuration (Recommended)**
 Create a `.vscode/mcp.json` file in your workspace:
@@ -301,6 +303,43 @@ Add to your VS Code `settings.json`:
 }
 ```
 
+#### IntelliJ IDEA Integration
+
+**Method 1: AI Assistant Plugin Configuration**
+1. Install the **MCP Support** plugin from JetBrains Marketplace
+2. Go to `File > Settings > Tools > MCP Servers`
+3. Add a new server configuration:
+   - **Name**: `JMeter MCP Server`
+   - **Command**: `node`
+   - **Arguments**: `src/index.js`
+   - **Working Directory**: `path/to/jmeter-mcp-server`
+   - **Environment**: `NODE_ENV=development`
+
+**Method 2: External Tools Integration**
+1. Go to `File > Settings > Tools > External Tools`
+2. Create a new tool:
+   - **Name**: `Generate JMeter Test`
+   - **Program**: `node`
+   - **Arguments**: `src/index.js --generate --input="$SELECTION$"`
+   - **Working Directory**: `$ProjectFileDir$/jmeter-mcp-server`
+3. Use via `Tools > External Tools > Generate JMeter Test`
+
+**Method 3: Run Configuration Setup**
+1. Go to `Run > Edit Configurations`
+2. Add new Node.js configuration:
+   - **Name**: `JMeter MCP Server`
+   - **Node interpreter**: System Node.js
+   - **Node parameters**: `--experimental-modules`
+   - **JavaScript file**: `src/index.js`
+   - **Application parameters**: `--port=3000 --debug`
+   - **Working directory**: `$PROJECT_DIR$`
+
+**IntelliJ Features Integration:**
+- **Code completion**: Use MCP server for JMeter DSL suggestions
+- **Quick actions**: Generate tests from selected API documentation
+- **Task integration**: Add JMeter generation to build processes
+- **Version control**: Automatic test generation on commit hooks
+
 ### Docker Deployment
 ```bash
 # Build and run container
@@ -308,7 +347,158 @@ docker build -t jmeter-mcp-server .
 docker run -p 3000:3000 jmeter-mcp-server
 ```
 
+## 🎯 IntelliJ IDEA Workflow Integration
+
+### Project Setup in IntelliJ
+1. **Open Project**: `File > Open` → Select `jmeter-mcp-server` directory
+2. **Configure Node.js**: `File > Settings > Languages & Frameworks > Node.js`
+3. **Install Plugins**: 
+   - **Node.js** (JetBrains)
+   - **JSON Schema** (for configuration validation)
+   - **HTTP Client** (for testing generated APIs)
+
+### Development Workflow
+```bash
+# Terminal in IntelliJ (Alt+F12)
+npm install          # Install dependencies
+npm run dev         # Start development server
+npm test           # Run test suite
+```
+
+### Debugging Configuration
+1. **Run/Debug Configuration**: `Run > Edit Configurations`
+2. **Add Node.js Configuration**:
+   - **JavaScript file**: `src/index.js`
+   - **Application parameters**: `--debug --port=3000`
+   - **Environment variables**: `NODE_ENV=development`
+3. **Set breakpoints** in handler files for debugging
+
+### HTTP Client Integration
+Create `.http` files in IntelliJ for testing:
+```http
+### Test JMeter Generation
+POST http://localhost:3000
+Content-Type: application/json
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "generate_jmeter_script",
+    "arguments": {
+      "testName": "API Load Test",
+      "baseUrl": "https://api.example.com",
+      "requests": [
+        {
+          "name": "Get Users",
+          "method": "GET",
+          "path": "/users"
+        }
+      ]
+    }
+  }
+}
+```
+
+### File Watchers Setup
+1. **Settings** → `Tools > File Watchers`
+2. **Add JavaScript watcher**:
+   - **File type**: JavaScript
+   - **Scope**: `src/**/*.js`
+   - **Program**: `eslint`
+   - **Arguments**: `$FilePath$ --fix`
+3. **Auto-format on save** for consistent code style
+
+### Other IDE Support
+
+#### WebStorm
+- **Full support** with Node.js integration
+- **Built-in debugging** and profiling
+- **Advanced refactoring** capabilities
+- **Integrated version control**
+
+#### Eclipse with Node.js
+1. Install **Nodeclipse** plugin
+2. Import as **Node.js project**
+3. Configure **run configurations** for MCP server
+4. Use **external tools** for JMeter generation
+
+#### Sublime Text
+1. Install **Package Control**
+2. Add **Node.js** and **JSON** packages
+3. Create **build system**:
+```json
+{
+  "cmd": ["node", "src/index.js"],
+  "working_dir": "$project_path",
+  "variants": [
+    {
+      "name": "Debug",
+      "cmd": ["node", "--inspect", "src/index.js"]
+    }
+  ]
+}
+```
+
+#### Vim/Neovim
+1. Install **CoC.nvim** for Node.js support
+2. Configure **.vimrc** for JavaScript:
+```vim
+" Node.js support
+autocmd FileType javascript setlocal omnifunc=javascriptcomplete#CompleteJS
+" Auto-formatting
+autocmd BufWritePre *.js execute ':!npx prettier --write %'
+```
+
+### Cross-Platform Development
+
+#### Windows Specific
+- **PowerShell scripts** in `scripts/` directory
+- **Windows Terminal** integration
+- **WSL2 support** for Linux compatibility
+
+#### macOS Specific  
+- **Homebrew** package management
+- **Terminal.app** integration
+- **Xcode** project integration (if needed)
+
+#### Linux Specific
+- **Package manager** installation (apt, yum, pacman)
+- **Shell integration** (bash, zsh, fish)
+- **Desktop environment** shortcuts
+
 ## 📖 Usage Examples
+
+### IntelliJ IDEA Usage Examples
+
+#### Quick Test Generation
+1. **Select API Documentation**: Highlight OpenAPI spec or API docs in editor
+2. **Right-click** → `External Tools` → `Generate JMeter Test`
+3. **Generated test** appears in `output/` directory
+
+#### Integration with Run Configurations
+```bash
+# Add to Run Configuration arguments:
+--base-url="https://api.example.com" --threads=10 --duration=300 --output="test-api.jmx"
+```
+
+#### Live Templates for JMeter MCP
+Create live templates in IntelliJ:
+- **Abbreviation**: `jgen`
+- **Template text**: 
+```json
+{
+  "testName": "$TEST_NAME$",
+  "baseUrl": "$BASE_URL$", 
+  "threadGroup": {
+    "numThreads": $THREADS$,
+    "rampUpTime": $RAMP_TIME$,
+    "loops": $LOOPS$
+  },
+  "requests": [$END$]
+}
+```
 
 ### Basic API Test
 ```
@@ -336,38 +526,160 @@ docker run -p 3000:3000 jmeter-mcp-server
 
 ```
 jmeter-mcp-server/
-├── src/
-│   ├── index.js                    # MCP server entry point
-│   ├── handlers/
-│   │   ├── jmeterHandler.js       # Core JMeter generation
-│   │   ├── uiFlowHandler.js       # UI testing workflows
-│   │   ├── apiSchemaHandler.js    # API schema processing
-│   │   ├── templateHandler.js     # Template management
-│   │   └── correlationHandler.js  # Response correlation
-│   ├── generators/
-│   │   ├── jmxGenerator.js        # JMX XML generation
-│   │   ├── configGenerator.js     # Configuration generation
-│   │   └── samplerGenerator.js    # HTTP sampler creation
-│   ├── ai/
-│   │   ├── aiValidationService.js # AI-powered validation
-│   │   └── aiJMXAssistant.js      # AI enhancement engine
-│   ├── parsers/
-│   │   └── promptToFlowParser.js  # Natural language parsing
-│   ├── correlation/
-│   │   ├── correlationEngine.js   # Correlation processing
-│   │   └── patterns.js            # Correlation patterns
-│   ├── utils/
-│   │   ├── fileWriter.js          # File management
-│   │   ├── validator.js           # Input validation
-│   │   └── xmlBuilder.js          # XML construction
-│   └── templates/
-│       └── jmxTemplates.js        # Pre-built templates
-├── output/                         # Generated JMX files
-├── sample_data/                   # CSV test data
-├── EXAMPLE_PROMPTS.md             # Usage examples
-├── DEPLOY.md                      # Deployment guide
-└── package.json
+├── 📁 src/                         # Source code directory
+│   ├── 🚀 index.js                 # MCP server entry point & initialization
+│   ├── 🖥️ server.js                # Core MCP server implementation
+│   │
+│   ├── 📁 handlers/                # Request handlers for different tool types
+│   │   ├── 🎯 jmeterHandler.js     # Core JMeter test generation logic
+│   │   ├── 🌐 uiFlowHandler.js     # UI testing workflows & browser simulation
+│   │   ├── 📋 apiSchemaHandler.js  # OpenAPI/Swagger schema processing
+│   │   ├── 📑 templateHandler.js   # Pre-built template management
+│   │   ├── 🔗 correlationHandler.js # Response correlation & token extraction
+│   │   └── 🔐 tokenManager.js      # Authentication token management
+│   │
+│   ├── 📁 generators/              # JMX file generation components
+│   │   ├── 📄 jmxGenerator.js      # Core JMX XML generation engine
+│   │   ├── ⚙️ configGenerator.js   # Test configuration generation
+│   │   └── 🔧 samplerGenerator.js  # HTTP sampler & request creation
+│   │
+│   ├── 📁 validators/              # Input validation & auto-correction
+│   │   └── ✅ scenarioValidator.js # Smart UI flow validation & correction
+│   │
+│   ├── 📁 parsers/                 # Natural language processing
+│   │   └── 🧠 promptToFlowParser.js # Convert descriptions to test flows
+│   │
+│   ├── 📁 correlation/             # Response correlation engine
+│   │   ├── 🔄 correlationEngine.js # Main correlation processing logic
+│   │   └── 📊 patterns.js          # Predefined correlation patterns
+│   │
+│   ├── 📁 crawler/                 # Web crawling & flow recording
+│   │   ├── 🕷️ flowCrawler.js       # Web flow analysis & discovery
+│   │   └── 📹 requestRecorder.js   # HTTP request recording & replay
+│   │
+│   ├── 📁 jmx/                     # JMX-specific utilities
+│   │   ├── 🎨 jmxGenerator.js      # Advanced JMX generation features
+│   │   ├── 📚 jmxTemplates.js      # JMX template library
+│   │   └── 📝 parameterizer.js     # Dynamic parameterization engine
+│   │
+│   ├── 📁 utils/                   # Utility functions & helpers
+│   │   ├── 📂 fileWriter.js        # File I/O operations & management
+│   │   ├── ✅ validator.js         # Input validation & sanitization
+│   │   ├── 🔧 xmlBuilder.js        # XML construction utilities
+│   │   ├── 📊 responseFormatter.js # Response formatting & prettification
+│   │   ├── 🎉 successMessageGenerator.js # Success message templates
+│   │   ├── 🌐 uiFlowHelpers.js     # UI testing utility functions
+│   │   └── 👀 fileMonitor.js       # File system monitoring
+│   │
+│   └── 📁 templates/               # Template management
+│       └── 📋 jmxTemplates.js      # Pre-built JMeter test templates
+│
+├── 📁 output/                      # Generated test files (auto-created)
+│   ├── 📄 *.jmx                    # Generated JMeter test plans
+│   ├── 📊 *.csv                    # Test data files
+│   └── 📁 enhanced/                # AI-enhanced test versions
+│
+├── 📁 sample_data/                 # Sample test data & examples
+│   ├── 👥 users.csv                # Sample user data
+│   ├── 🛒 products.csv             # Sample product data
+│   └── 🔐 auth_data.csv            # Sample authentication data
+│
+├── 📁 scripts/                     # Utility scripts & tools
+│   └── 🛠️ jmeter-helper.ps1       # PowerShell helper script for JMeter
+│
+├── 📁 docs/                        # Documentation (if exists)
+│   ├── 📖 API.md                   # API documentation
+│   ├── ⚙️ CONFIG.md               # Configuration guide
+│   └── 🎯 EXAMPLES.md              # Usage examples
+│
+├── 📁 .vscode/                     # VS Code workspace settings
+│   ├── ⚙️ settings.json            # Editor settings
+│   ├── 🎯 launch.json              # Debug configurations
+│   └── 📋 tasks.json               # Build tasks
+│
+├── 📄 package.json                 # Node.js project configuration
+├── 📄 package-lock.json            # Dependency lock file
+├── 📄 README.md                    # Project documentation (this file)
+├── 📄 LICENSE                      # MIT license
+├── 📄 CONTRIBUTING.md              # Contribution guidelines
+├── 📄 DEPLOYMENT.md                # Deployment instructions
+├── 📄 EXAMPLE_PROMPTS.md           # Ready-to-use examples
+├── 📄 SCENARIO_VALIDATOR.md        # Scenario validator documentation
+├── 📄 Procfile                     # Heroku deployment config
+└── 📄 .gitignore                   # Git ignore rules
 ```
+
+### 📁 Directory Breakdown
+
+#### **Core Application (`src/`)**
+- **Entry Points**: `index.js` (MCP server), `server.js` (core logic)
+- **Request Handling**: Modular handlers for different tool types
+- **Generation Engine**: Sophisticated JMX file creation system
+- **AI Integration**: Smart validation and auto-correction capabilities
+
+#### **Handlers (`src/handlers/`)**
+- **🎯 jmeterHandler.js**: Main test generation logic with thread groups, timers, assertions
+- **🌐 uiFlowHandler.js**: Browser simulation, form handling, element interaction
+- **📋 apiSchemaHandler.js**: OpenAPI parsing, endpoint discovery, auth integration
+- **📑 templateHandler.js**: Pre-built templates for common testing scenarios
+- **🔗 correlationHandler.js**: Response parsing, token extraction, session management
+- **🔐 tokenManager.js**: OAuth2, JWT, API key management
+
+#### **Generation System (`src/generators/`)**
+- **📄 jmxGenerator.js**: Core XML generation with proper JMeter structure
+- **⚙️ configGenerator.js**: Test plan configuration, variables, defaults
+- **🔧 samplerGenerator.js**: HTTP requests, headers, body content
+
+#### **Intelligence Layer (`src/validators/`, `src/parsers/`)**
+- **✅ scenarioValidator.js**: Auto-correction engine for UI flows
+- **🧠 promptToFlowParser.js**: Natural language to test step conversion
+
+#### **Advanced Features (`src/correlation/`, `src/crawler/`)**
+- **🔄 correlationEngine.js**: Dynamic parameter extraction and reuse
+- **📊 patterns.js**: Common correlation patterns (tokens, IDs, timestamps)
+- **🕷️ flowCrawler.js**: Web application flow discovery
+- **📹 requestRecorder.js**: HTTP traffic capture and replay
+
+#### **Output Management (`output/`, `sample_data/`)**
+- **Generated Files**: JMX test plans ready for JMeter execution
+- **Test Data**: CSV files for parameterized testing
+- **Enhanced Versions**: AI-optimized test scripts
+- **Sample Data**: Example datasets for quick testing
+
+#### **Development Tools (`scripts/`, `.vscode/`)**
+- **PowerShell Scripts**: Windows-specific JMeter utilities
+- **VS Code Integration**: Debug configs, tasks, settings
+- **Documentation**: Comprehensive guides and examples
+
+### 🔧 File Naming Conventions
+
+- **`.jmx`**: JMeter test plan files
+- **`.csv`**: Test data files
+- **`*Handler.js`**: Request processing modules
+- **`*Generator.js`**: Content generation modules
+- **`*Parser.js`**: Data parsing modules
+- **`*Validator.js`**: Validation modules
+- **`test-*.js`**: Test files
+- **`*Templates.js`**: Template libraries
+
+### 📊 Data Flow Architecture
+
+```
+User Request → MCP Server → Handler → Validator → Parser → Generator → JMX File
+     ↓              ↓           ↓          ↓         ↓          ↓
+  VS Code/     index.js    Handler    Validator   Parser   Generator
+ IntelliJ                   Logic     Engine      Engine    Engine
+```
+
+### 🔄 Processing Pipeline
+
+1. **Input Reception**: MCP server receives tool request
+2. **Request Routing**: Appropriate handler selected based on tool type
+3. **Validation**: Input validated and auto-corrected if needed
+4. **Parsing**: Natural language converted to structured data
+5. **Generation**: JMX XML generated with proper structure
+6. **Enhancement**: Optional AI-powered optimization
+7. **Output**: Files written to output directory with success notification
 
 ## 🎮 Example Prompts
 
