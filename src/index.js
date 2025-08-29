@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { JMeterHandler } from './handlers/jmeterHandler.js';
 import { TemplateHandler } from './handlers/templateHandler.js';
@@ -11,6 +12,9 @@ import { FileMonitor } from './utils/fileMonitor.js';
 import winston from 'winston';
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
+import crypto from 'crypto';
+import { URL } from 'url';
 
 // Server configuration with UI support
 const serverConfig = {
@@ -759,10 +763,15 @@ ${error.message}
   }
 }
 
-// Startup function with enhanced UI information
+// Startup function with enhanced UI information and HTTP transport support
 async function main() {
   try {
     console.error('🔧 Initializing JMeter MCP Server...');
+    
+    // Check command line arguments for transport mode
+    const args = process.argv.slice(2);
+    const httpMode = args.includes('--http') || args.includes('--server');
+    const port = getPortFromArgs(args) || process.env.PORT || 3000;
     
     // Display server information
     console.error(`📊 Server: ${serverConfig.name} v${serverConfig.version}`);
@@ -782,18 +791,117 @@ async function main() {
     console.error(`📁 Output Monitoring: Enabled (./output, ./src/output, ./)`);
     console.error(`🔄 Auto-stop on file generation: Enabled`);
     
-    const transport = new StdioServerTransport();
+    // Choose transport based on mode
+    let transport;
+    if (httpMode) {
+      // Create Streamable HTTP transport for remote connections
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => crypto.randomUUID(),
+      });
+      
+      // Create HTTP server
+      const httpServer = http.createServer((req, res) => {
+        // Add CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+        
+        // Health check endpoint
+        if (req.url === '/health') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ 
+            status: 'healthy', 
+            server: serverConfig.name,
+            version: serverConfig.version,
+            transport: 'streamable-http',
+            endpoint: '/mcp',
+            tools: 5
+          }));
+          return;
+        }
+        
+        // API documentation endpoint
+        if (req.url === '/api' || req.url === '/docs') {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            server: serverConfig.name,
+            version: serverConfig.version,
+            description: serverConfig.description,
+            transport: {
+              type: 'Streamable HTTP',
+              endpoint: '/mcp',
+              healthCheck: '/health'
+            },
+            tools: [
+              'generate_jmeter_script',
+              'generate_from_api_schema', 
+              'generate_inventree_test',
+              'get_templates',
+              'generate_ui_flow_script'
+            ],
+            ui: serverConfig.ui
+          }, null, 2));
+          return;
+        }
+        
+        // MCP endpoint
+        if (req.url === '/mcp' || req.url === '/message') {
+          transport.handleRequest(req, res);
+          return;
+        }
+        
+        // Default 404
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Not found' }));
+      });
+      
+      httpServer.listen(port, () => {
+        console.error(`� HTTP Transport Mode: Server listening on port ${port}`);
+        console.error(`🔗 SSE Endpoint: http://localhost:${port}/message`);
+        console.error(`🏥 Health Check: http://localhost:${port}/health`);
+        console.error(`📚 API Docs: http://localhost:${port}/api`);
+        console.error(`💡 Connect via HTTP client or remote MCP applications`);
+        console.error(`📖 Example connection: curl http://localhost:${port}/health`);
+      });
+    } else {
+      // Use stdio transport for local connections (default)
+      transport = new StdioServerTransport();
+      console.error(`🖥️  Stdio Transport Mode: Ready for local MCP connections`);
+      console.error(`🔗 Connect via Claude Desktop, VS Code MCP extension, or pipe`);
+    }
+    
     await server.connect(transport);
     
     console.error('🎯 JMeter MCP Server successfully started!');
-    console.error('💡 Ready to generate JMeter test scripts via MCP protocol');
-    console.error('🔗 Connect via Claude Desktop, VS Code MCP extension, or custom MCP client');
-    console.error('📖 Use any of the 5 available tools to create comprehensive test plans');
+    console.error('� Ready to generate JMeter test scripts via MCP protocol');
+    console.error(`📡 Transport: ${httpMode ? 'HTTP/SSE (Remote)' : 'Stdio (Local)'}`);
     
   } catch (error) {
     console.error(`Failed to start server: ${error.message}`);
     process.exit(1);
   }
+}
+
+// Helper function to extract port from command line arguments
+function getPortFromArgs(args) {
+  const portIndex = args.findIndex(arg => arg === '--port' || arg === '-p');
+  if (portIndex !== -1 && args[portIndex + 1]) {
+    return parseInt(args[portIndex + 1], 10);
+  }
+  
+  // Check for --port=value format
+  const portArg = args.find(arg => arg.startsWith('--port='));
+  if (portArg) {
+    return parseInt(portArg.split('=')[1], 10);
+  }
+  
+  return null;
 }
 
 // Graceful shutdown handling

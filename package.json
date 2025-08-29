@@ -17,7 +17,10 @@
   ],
   "scripts": {
     "start": "node src/index.js",
+    "start:http": "node src/index.js --http",
+    "start:server": "node src/index.js --http --port 3000",
     "dev": "node --inspect src/index.js",
+    "dev:http": "node --inspect src/index.js --http",
     "test": "node test-server.js",
     "test-api": "node test-api-schema.js",
     "test-xml": "node test-xml-generation.js",

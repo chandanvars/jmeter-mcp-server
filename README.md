@@ -30,6 +30,7 @@ Output: "Navigate to login page. Enter username. Enter password. Click login but
 
 ## ⚡ Quick Start
 
+### 🖥️ Local Development (Stdio Transport)
 ```bash
 # Clone the repository
 git clone https://github.com/chandanvars/jmeter-mcp-server.git
@@ -38,11 +39,85 @@ cd jmeter-mcp-server
 # Install dependencies  
 npm install
 
-# Start the MCP server
+# Start the MCP server (stdio mode for local connections)
 npm start
 ```
 
+### 🌐 Remote/HTTP Server Mode (Recommended for Production)
+```bash
+# Start server with HTTP transport for remote connections
+npm run start:http
+
+# Or specify custom port
+npm run start:server -- --port 8080
+
+# Or start directly
+node src/index.js --http --port 3000
+```
+
 **VS Code Integration:** Use `@jmeter-generator` in VS Code chat for instant test generation!
+
+## 🚀 Transport Modes
+
+### 📡 HTTP/SSE Transport (Recommended for Remote Connections)
+
+The server supports **Streamable HTTP Transport** using Server-Sent Events (SSE) for robust remote connections:
+
+**Features:**
+- ✅ **Remote Access**: Connect from any network location
+- ✅ **CORS Support**: Cross-origin requests enabled
+- ✅ **Health Monitoring**: Built-in health check endpoints
+- ✅ **API Documentation**: Self-documenting endpoints
+- ✅ **Production Ready**: Scalable for multiple clients
+- ✅ **Firewall Friendly**: Standard HTTP/HTTPS ports
+
+**Starting HTTP Server:**
+```bash
+# Start on default port 3000
+npm run start:http
+
+# Start on custom port
+npm run start:server -- --port 8080
+
+# Or with environment variable
+PORT=5000 npm run start:http
+```
+
+**Server Endpoints:**
+- **MCP Endpoint**: `http://localhost:3000/message` (SSE stream)
+- **Health Check**: `http://localhost:3000/health`
+- **API Documentation**: `http://localhost:3000/api`
+
+**Connection Examples:**
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Get API documentation
+curl http://localhost:3000/api | jq
+
+# Check server status
+curl -s http://localhost:3000/health | jq '.status'
+```
+
+### 🖥️ Stdio Transport (Local Development)
+
+Traditional stdio transport for local development and MCP client integration:
+
+**Features:**
+- ✅ **Local Integration**: Perfect for Claude Desktop, VS Code
+- ✅ **Low Latency**: Direct process communication
+- ✅ **Simple Setup**: No network configuration needed
+- ✅ **Secure**: No network exposure
+
+**Starting Stdio Server:**
+```bash
+# Default mode (stdio)
+npm start
+
+# Development mode with debugging
+npm run dev
+```
 
 ## 🛠️ Complete Tool Suite
 
@@ -264,15 +339,163 @@ git clone https://github.com/chandanvars/jmeter-mcp-server.git
 cd jmeter-mcp-server
 npm install
 
-# Start the server
-npm start
+# Start the server (choose your mode)
+npm start              # Local stdio mode
+npm run start:http     # Remote HTTP mode (port 3000)
+npm run start:server   # Remote HTTP mode with explicit port
+```
+
+### 🌐 Remote/Production Deployment
+
+#### HTTP Transport Configuration
+
+For production deployments and remote access, use HTTP transport:
+
+```bash
+# Production server (default port 3000)
+NODE_ENV=production npm run start:http
+
+# Custom port
+PORT=8080 npm run start:http
+
+# With process manager (PM2)
+pm2 start "npm run start:http" --name jmeter-mcp-server
+
+# Docker deployment
+docker run -p 3000:3000 -e NODE_ENV=production jmeter-mcp-server npm run start:http
+```
+
+#### Environment Variables for HTTP Mode
+```bash
+NODE_ENV=production
+PORT=3000
+MCP_SERVER_NAME=jmeter-generator
+LOG_LEVEL=info
+VALIDATION_ENABLED=true
+MAX_FILE_SIZE=50MB
+OUTPUT_DIRECTORY=./output
+SAMPLE_DATA_DIRECTORY=./sample_data
+CORS_ORIGIN=*  # Configure CORS origins for security
+```
+
+#### Health Monitoring
+```bash
+# Health check endpoint
+curl http://your-server:3000/health
+
+# Expected response:
+{
+  "status": "healthy",
+  "server": "jmeter-generator",
+  "version": "1.0.0",
+  "transport": "http-sse",
+  "endpoint": "/message",
+  "tools": 5
+}
+
+# Monitor server uptime
+while true; do
+  curl -s http://localhost:3000/health | jq '.status'
+  sleep 30
+done
+```
+
+#### Client Connection Examples
+
+**JavaScript/Node.js Client:**
+```javascript
+// Connect to HTTP transport
+const eventSource = new EventSource('http://localhost:3000/message');
+
+eventSource.onmessage = function(event) {
+  const data = JSON.parse(event.data);
+  console.log('Received:', data);
+};
+
+// Send MCP request
+fetch('http://localhost:3000/message', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    jsonrpc: '2.0',
+    id: 1,
+    method: 'tools/call',
+    params: {
+      name: 'generate_jmeter_script',
+      arguments: { /* your config */ }
+    }
+  })
+});
+```
+
+**Python Client:**
+```python
+import requests
+import json
+
+# Health check
+response = requests.get('http://localhost:3000/health')
+print(f"Server status: {response.json()['status']}")
+
+# Generate JMeter script
+config = {
+    "testName": "API Load Test",
+    "baseUrl": "https://api.example.com",
+    "requests": [{"name": "Test", "method": "GET", "path": "/health"}]
+}
+
+response = requests.post('http://localhost:3000/message', 
+                        json={
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": "tools/call",
+                            "params": {
+                                "name": "generate_jmeter_script",
+                                "arguments": config
+                            }
+                        })
+```
+
+**Load Balancer Configuration (Nginx):**
+```nginx
+upstream jmeter_mcp {
+    server localhost:3000;
+    server localhost:3001;  # Additional instances
+    server localhost:3002;
+}
+
+server {
+    listen 80;
+    server_name your-domain.com;
+    
+    location / {
+        proxy_pass http://jmeter_mcp;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        
+        # SSE specific headers
+        proxy_buffering off;
+        proxy_cache off;
+        proxy_set_header Cache-Control 'no-cache';
+    }
+    
+    location /health {
+        proxy_pass http://jmeter_mcp/health;
+    }
+}
 ```
 
 ### IDE Integration
 
 #### VS Code Integration
 
-**Method 1: Workspace Configuration (Recommended)**
+**Method 1: Local Stdio Mode (Recommended for Development)**
 Create a `.vscode/mcp.json` file in your workspace:
 ```json
 {
@@ -288,7 +511,21 @@ Create a `.vscode/mcp.json` file in your workspace:
 }
 ```
 
-**Method 2: Global Settings**
+**Method 2: Remote HTTP Mode (Recommended for Teams)**
+For remote server connections, configure VS Code to connect to HTTP transport:
+```json
+{
+  "servers": {
+    "jmeter-mcp-remote": {
+      "url": "http://your-server:3000/message",
+      "transport": "sse",
+      "healthCheck": "http://your-server:3000/health"
+    }
+  }
+}
+```
+
+**Method 3: Global Settings**
 Add to your VS Code `settings.json`:
 ```json
 {
@@ -342,9 +579,30 @@ Add to your VS Code `settings.json`:
 
 ### Docker Deployment
 ```bash
-# Build and run container
+# Build and run container (stdio mode)
 docker build -t jmeter-mcp-server .
 docker run -p 3000:3000 jmeter-mcp-server
+
+# Run with HTTP transport
+docker run -p 3000:3000 -e NODE_ENV=production jmeter-mcp-server npm run start:http
+
+# Docker Compose for production
+version: '3.8'
+services:
+  jmeter-mcp:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    command: npm run start:http
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 ```
 
 ## 🎯 IntelliJ IDEA Workflow Integration
@@ -741,37 +999,118 @@ Edit `src/config/settings.js`:
 
 ### Health Checks
 ```bash
-# Server health
-curl http://localhost:3000/health
+# Server health (both modes)
+curl http://localhost:3000/health  # HTTP mode
+echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | npm start  # Stdio mode
 
-# Tool availability  
-curl -X POST http://localhost:3000 \
+# Tool availability (HTTP mode)
+curl -X POST http://localhost:3000/message \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
+
+# Expected health response:
+{
+  "status": "healthy",
+  "server": "jmeter-generator", 
+  "version": "1.0.0",
+  "transport": "http-sse",
+  "endpoint": "/message",
+  "tools": 5
+}
 ```
 
 ## 🚀 Deployment Options
 
-### 1. Heroku
+### 1. Heroku (HTTP Transport)
 ```bash
+# Create and deploy with HTTP transport
 heroku create your-jmeter-mcp-server
+heroku config:set NPM_CONFIG_PRODUCTION=false
+heroku config:set NODE_ENV=production
 git push heroku main
-heroku ps:scale web=1
+
+# The app will automatically start with HTTP transport
+# Access via: https://your-app.herokuapp.com/health
 ```
 
-### 2. Railway
+### 2. Railway (HTTP Transport)
 - Connect GitHub repository at railway.app
+- Set environment variable: `PORT=3000`
 - Auto-deploy on push to main branch
+- Railway will automatically use HTTP mode
 
-### 3. Digital Ocean
-- Use App Platform with GitHub integration
-- Automatic scaling and SSL
+### 3. Digital Ocean App Platform
+```yaml
+# .do/app.yaml
+name: jmeter-mcp-server
+services:
+- name: api
+  source_dir: /
+  github:
+    repo: your-username/jmeter-mcp-server
+    branch: main
+  run_command: npm run start:http
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "3000"
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 30
+    period_seconds: 10
+    timeout_seconds: 5
+    success_threshold: 1
+    failure_threshold: 3
+```
 
-### 4. Local Production
+### 4. Local Production (PM2)
 ```bash
+# Install PM2 process manager
 npm install -g pm2
-pm2 start src/index.js --name jmeter-mcp-server
-pm2 startup && pm2 save
+
+# Start with HTTP transport
+pm2 start npm --name "jmeter-mcp-http" -- run start:http
+
+# Start with custom port
+pm2 start npm --name "jmeter-mcp-8080" -- run start:server -- --port 8080
+
+# Monitoring and management
+pm2 list
+pm2 logs jmeter-mcp-http
+pm2 restart jmeter-mcp-http
+pm2 stop jmeter-mcp-http
+
+# Auto-start on system boot
+pm2 startup
+pm2 save
+
+# Cluster mode for high availability
+pm2 start ecosystem.config.js
+```
+
+**ecosystem.config.js:**
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'jmeter-mcp-cluster',
+      script: 'npm',
+      args: 'run start:http',
+      instances: 'max',
+      exec_mode: 'cluster',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000
+      },
+      health_check_grace_period: 3000,
+      health_check_path: '/health'
+    }
+  ]
+};
 ```
 
 ## 🤝 Contributing
@@ -824,13 +1163,40 @@ npm install
 
 # Check for errors
 npm run check
+
+# Test specific transport modes
+npm start        # stdio mode
+npm run start:http  # HTTP mode
+```
+
+**HTTP Transport Issues**
+```bash
+# Check if port is available
+netstat -an | grep :3000  # Windows
+lsof -i :3000             # macOS/Linux
+
+# Test connectivity
+curl http://localhost:3000/health
+
+# Check server logs
+npm run start:http 2>&1 | tee server.log
+
+# Test with different port
+PORT=8080 npm run start:http
 ```
 
 **VS Code Integration Issues**
-1. Restart VS Code completely
-2. Check MCP extension is installed and enabled
-3. Verify settings.json configuration
-4. Check VS Code output panel for errors
+1. **Stdio Mode (Local)**:
+   - Restart VS Code completely
+   - Check MCP extension is installed and enabled
+   - Verify settings.json configuration
+   - Check VS Code output panel for errors
+
+2. **HTTP Mode (Remote)**:
+   - Verify server is running: `curl http://server:3000/health`
+   - Check network connectivity and firewall settings
+   - Ensure correct URL in VS Code MCP configuration
+   - Check CORS settings for cross-origin requests
 
 **Generated Tests Not Working**
 1. Verify JMeter is installed
@@ -840,11 +1206,19 @@ npm run check
 
 ### Debug Mode
 ```bash
-# Start with debug logging
+# Stdio mode with debugging
 NODE_ENV=development npm run dev
 
-# Enable verbose logging
+# HTTP mode with debugging  
+NODE_ENV=development npm run dev:http
+
+# Enable verbose logging (both modes)
 DEBUG=true npm start
+DEBUG=true npm run start:http
+
+# Test specific endpoints (HTTP mode)
+curl -v http://localhost:3000/health
+curl -v http://localhost:3000/api
 ```
 
 ## 📚 Documentation

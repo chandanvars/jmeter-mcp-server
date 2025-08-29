@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Production service with HTTP transport
+  jmeter-mcp-http:
+    build:
+      context: .
+      target: production
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - LOG_LEVEL=info
+      - VALIDATION_ENABLED=true
+    volumes:
+      - ./output:/app/output
+      - ./sample_data:/app/sample_data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - jmeter-network
+
+  # Development service with stdio transport
+  jmeter-mcp-dev:
+    build:
+      context: .
+      target: development
+    environment:
+      - NODE_ENV=development
+      - DEBUG=true
+    volumes:
+      - .:/app
+      - /app/node_modules
+    profiles:
+      - dev
+    networks:
+      - jmeter-network
+
+  # Load balancer (nginx) for multiple instances
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - jmeter-mcp-http
+    profiles:
+      - production
+    networks:
+      - jmeter-network
+
+  # Monitoring with health checks
+  health-monitor:
+    image: curlimages/curl:latest
+    command: |
+      sh -c 'while true; do
+        echo "Checking health at $$(date)"
+        curl -f http://jmeter-mcp-http:3000/health || echo "Health check failed"
+        sleep 30
+      done'
+    depends_on:
+      - jmeter-mcp-http
+    profiles:
+      - monitoring
+    networks:
+      - jmeter-network
+
+networks:
+  jmeter-network:
+    driver: bridge
+
+volumes:
+  jmeter-output:
+  jmeter-sample-data:
