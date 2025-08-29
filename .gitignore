@@ -123,6 +123,7 @@ jmeter.log
 
 # Development files
 test-*.js
+!test-transports.js  # Allow transport test file
 generate_*.js
 
 # Credentials and sensitive data
