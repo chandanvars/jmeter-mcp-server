@@ -25,10 +25,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Run syntax check
       run: npm run check
@@ -54,10 +58,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Run ESLint (if configured)
       run: |
@@ -80,10 +88,14 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
-        cache: 'npm'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Run security audit
       run: npm audit --audit-level=high
@@ -102,11 +114,15 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18.x'
-        cache: 'npm'
         registry-url: 'https://registry.npmjs.org'
         
     - name: Install dependencies
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci
+        else
+          npm install
+        fi
       
     - name: Publish to NPM
       run: npm publish

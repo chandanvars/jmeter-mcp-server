@@ -54,7 +54,7 @@
   },
   "homepage": "https://github.com/chandanvars/jmeter-mcp-server#readme",
   "engines": {
-    "node": "24.6.0"
+    "node": ">=16.0.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.4",
