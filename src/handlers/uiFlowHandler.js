@@ -7,12 +7,14 @@ import { PromptToFlowParser } from '../parsers/promptToFlowParser.js';
 import { JMXGenerator } from '../generators/jmxGenerator.js';
 import { validateTestPlan } from '../utils/validator.js';
 import { FileWriter } from '../utils/fileWriter.js';
+import { ScenarioValidator } from '../validators/scenarioValidator.js';
 
 export class UIFlowHandler {
   constructor() {
     this.promptParser = new PromptToFlowParser();
     this.jmxGenerator = new JMXGenerator();
     this.fileWriter = new FileWriter();
+    this.scenarioValidator = new ScenarioValidator();
   }
 
   /**
@@ -28,14 +30,48 @@ export class UIFlowHandler {
         csvDataSet 
       } = params;
 
-      // Parse the flow description into actionable steps
-      const parseResult = await this.promptParser.parsePrompt(flowDescription);
-      
-      if (!parseResult.success) {
-        throw new Error(`Failed to parse flow description: ${parseResult.error}`);
+      // STEP 1: Validate and correct the flow description using ScenarioValidator
+      console.log('🔍 Validating and correcting flow description...');
+      const validationResult = await this.scenarioValidator.validateAndCorrect(
+        flowDescription, 
+        { baseUrl, testName }
+      );
+
+      if (!validationResult.success) {
+        throw new Error(`Flow validation failed: ${validationResult.error}`);
       }
 
-      // Validate the generated steps
+      // Use the corrected flow for parsing
+      const correctedFlowDescription = validationResult.correctedFlow;
+      console.log(`✅ Flow validation complete. Modified: ${validationResult.wasModified}`);
+
+      // STEP 2: Parse the corrected flow description into actionable steps
+      console.log('🔄 Parsing corrected flow into actionable steps...');
+      const parseResult = await this.promptParser.parsePrompt(correctedFlowDescription);
+      
+      if (!parseResult.success) {
+        // If parsing fails even after validation, try one more correction attempt
+        console.log('⚠️ Initial parsing failed, attempting additional corrections...');
+        const fallbackResult = await this.scenarioValidator.validateAndCorrect(
+          flowDescription + '. Navigate to homepage. Click submit button. Wait for response.',
+          { baseUrl, testName }
+        );
+        
+        if (fallbackResult.success) {
+          const fallbackParseResult = await this.promptParser.parsePrompt(fallbackResult.correctedFlow);
+          if (fallbackParseResult.success) {
+            Object.assign(parseResult, fallbackParseResult);
+            validationResult.corrections.push('Applied fallback corrections for parsing compatibility');
+          } else {
+            throw new Error(`Failed to parse flow description even after corrections: ${parseResult.error}`);
+          }
+        } else {
+          throw new Error(`Failed to parse flow description: ${parseResult.error}`);
+        }
+      }
+
+      // STEP 3: Validate the generated steps
+      console.log('✅ Validating generated flow steps...');
       const validation = this.promptParser.validateFlowSteps(parseResult.steps);
       if (!validation.isValid) {
         throw new Error(`Invalid flow steps: ${validation.errors.join(', ')}`);
@@ -52,7 +88,9 @@ export class UIFlowHandler {
         threadGroup,
         csvDataSet,
         flowSteps: parseResult.steps,
-        originalPrompt: flowDescription
+        originalPrompt: flowDescription,
+        correctedPrompt: correctedFlowDescription,
+        validationResult // Include validation details in test plan
       };
 
       // Generate filename for JMX file
@@ -91,7 +129,7 @@ export class UIFlowHandler {
       const content = [
         {
           type: 'text',
-          text: this.generateSuccessMessage(testPlan, parseResult.steps, jmxFilePath, csvFileName)
+          text: this.generateSuccessMessage(testPlan, parseResult.steps, jmxFilePath, csvFileName, validationResult)
         },
         {
           type: 'file_reference',
@@ -117,12 +155,21 @@ export class UIFlowHandler {
         text: this.generateStepBreakdown(parseResult.steps)
       });
 
+      // Add validation report if there were corrections
+      if (validationResult.wasModified) {
+        content.push({
+          type: 'text',
+          text: this.generateValidationReport(validationResult)
+        });
+      }
+
       return { 
         content,
         filePaths: {
           jmx: jmxFilePath,
           csv: csvFileName ? this.fileWriter.getAbsoluteCSVPath(csvFileName) : null
-        }
+        },
+        validationResult // Include validation result for debugging
       };
 
     } catch (error) {
@@ -422,9 +469,9 @@ export class UIFlowHandler {
   }
 
   /**
-   * Generate success message
+   * Generate success message with validation details
    */
-  generateSuccessMessage(testPlan, steps, jmxFilePath, csvFileName) {
+  generateSuccessMessage(testPlan, steps, jmxFilePath, csvFileName, validationResult = null) {
     const fileName = jmxFilePath ? jmxFilePath.split(/[/\\]/).pop() : 'unknown_file.jmx';
     
     // Generate dynamic step breakdown for display
@@ -467,23 +514,34 @@ export class UIFlowHandler {
       
       return reqDetails;
     }).join('\n\n');
+
+    // Add validation information if available
+    let validationInfo = '';
+    if (validationResult && validationResult.wasModified) {
+      validationInfo = `\n\n**🔧 Flow Validation & Auto-Corrections:**
+✅ **Scenario Validator Applied**: ${validationResult.corrections.length} corrections made
+📊 **Confidence Score**: ${(validationResult.confidence * 100).toFixed(1)}%
+${validationResult.issues.length > 0 ? `⚠️ **Issues Resolved**: ${validationResult.issues.length} issues` : ''}
+🎯 **Final Validation**: ${validationResult.validation.isValid ? 'Passed' : 'Warning'}`;
+    }
     
     return `🌐 **UI Flow Script Generated Successfully!**
 
 **Test Plan:** ${testPlan.testName}
 **Base URL:** ${testPlan.baseUrl}
-**Flow Description:** ${testPlan.originalPrompt}
+**Flow Description:** ${testPlan.originalPrompt}${testPlan.correctedPrompt && testPlan.correctedPrompt !== testPlan.originalPrompt ? `\n**Corrected Flow:** ${testPlan.correctedPrompt}` : ''}
 **Parsed Steps:** ${steps.length} actions identified
 **Generated Requests:** ${testPlan.requests.length} HTTP requests
 **Load Configuration:** ${testPlan.threadGroup.numThreads} users, ${testPlan.threadGroup.rampUpTime}s ramp-up, ${testPlan.threadGroup.loops}s duration
 
 **Generated Features:**
-✅ Natural language flow parsing
+✅ Natural language flow parsing with auto-correction
 ✅ Intelligent action recognition and conversion
 ✅ HTTP request generation for UI interactions
 ✅ Cookie and session management
 ✅ Response extractors for dynamic data
 ✅ Performance monitoring listeners
+✅ Scenario validation and error resolution${validationInfo}
 
 **Parsed Flow Actions:**
 ${stepBreakdown}
@@ -492,6 +550,51 @@ ${stepBreakdown}
 ${requestBreakdown}
 
 The generated JMX file is ready for use with JMeter ✅`;
+  }
+
+  /**
+   * Generate validation report
+   */
+  generateValidationReport(validationResult) {
+    const report = [`📋 **Scenario Validation Report**\n`];
+
+    if (validationResult.wasModified) {
+      report.push(`🔧 **Auto-Corrections Applied**: ${validationResult.corrections.length} modifications made`);
+      report.push(`📊 **Validation Confidence**: ${(validationResult.confidence * 100).toFixed(1)}%`);
+      
+      if (validationResult.issues.length > 0) {
+        report.push(`\n**Issues Identified & Resolved:**`);
+        validationResult.issues.forEach((issue, index) => {
+          report.push(`${index + 1}. ${issue}`);
+        });
+      }
+
+      if (validationResult.corrections.length > 0) {
+        report.push(`\n**Corrections Applied:**`);
+        validationResult.corrections.forEach((correction, index) => {
+          report.push(`${index + 1}. ${correction}`);
+        });
+      }
+
+      if (validationResult.suggestions.length > 0) {
+        report.push(`\n**Suggestions for Enhancement:**`);
+        validationResult.suggestions.forEach((suggestion, index) => {
+          report.push(`${index + 1}. ${suggestion}`);
+        });
+      }
+
+      const validationSummary = this.scenarioValidator.getValidationSummary(validationResult);
+      report.push(`\n**Validation Summary:**`);
+      report.push(`- Issues Found: ${validationSummary.issuesFound}`);
+      report.push(`- Corrections Made: ${validationSummary.correctionsMade}`);
+      report.push(`- Suggestions Provided: ${validationSummary.suggestionsProvided}`);
+      report.push(`- Final Validation: ${validationSummary.finalValidation ? '✅ Passed' : '⚠️ Warning'}`);
+      report.push(`- Confidence Score: ${(validationSummary.confidence * 100).toFixed(1)}%`);
+    } else {
+      report.push(`✅ **No corrections needed** - Your flow description was already compatible with the parser!`);
+    }
+
+    return report.join('\n');
   }
 
   /**

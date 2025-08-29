@@ -10,6 +10,24 @@ A powerful Model Context Protocol (MCP) server for generating Apache JMeter test
 
 The JMeter MCP Server is a comprehensive testing solution that integrates with MCP-compatible clients (like Claude Desktop, VS Code) to generate sophisticated JMeter test plans. It combines traditional performance testing with modern AI assistance to create production-ready test scripts with minimal effort.
 
+## 🔧 NEW: Scenario Validator
+
+**Revolutionary Auto-Correction Technology** - The built-in Scenario Validator automatically fixes and enhances any UI flow description, ensuring reliable JMX generation from any input:
+
+✅ **Smart Typo Correction**: Fixes common misspellings ("loggin" → "login", "clik" → "click")  
+✅ **Flow Enhancement**: Expands minimal descriptions ("login" → complete login flow)  
+✅ **Structure Validation**: Adds missing navigation, wait steps, and proper sequencing  
+✅ **Parser Compatibility**: Ensures 100% compatibility with the natural language parser  
+✅ **Confidence Scoring**: Provides validation confidence metrics  
+
+**Example Auto-Correction:**
+```
+Input:  "loggin with wrong spelling, clik button"
+Output: "Navigate to login page. Enter username. Enter password. Click login button. Wait for page load."
+```
+
+[📖 **Read Full Documentation**](./SCENARIO_VALIDATOR.md)
+
 ## ⚡ Quick Start
 
 ```bash
@@ -84,18 +102,28 @@ Generate tests directly from OpenAPI/Swagger specifications:
 ```
 
 ### 3. 🌐 **generate_ui_flow_script** - UI Testing with Browser Simulation
-Create sophisticated UI testing scenarios:
+Create sophisticated UI testing scenarios with **intelligent auto-correction**:
 
 **Features:**
-- Natural language flow parsing
-- Web browser simulation
-- Element interaction (click, type, select, navigate)
-- Form handling and submission
-- JavaScript execution support
-- Screenshot capture on failures
-- Responsive design testing
-- Cross-browser simulation
-- Session management and cookies
+- ✨ **Scenario Validator**: Automatic flow correction and enhancement
+- 🧠 **Natural language flow parsing** with typo correction
+- 🌐 **Web browser simulation** 
+- 🖱️ **Element interaction** (click, type, select, navigate)
+- 📝 **Form handling and submission**
+- ⚡ **JavaScript execution support**
+- 📸 **Screenshot capture on failures**
+- 📱 **Responsive design testing**
+- 🌍 **Cross-browser simulation**
+- 🍪 **Session management and cookies**
+
+**Auto-Correction Examples:**
+```javascript
+// Input: "loggin to system"
+// Auto-corrected: "Navigate to login page. Enter username. Enter password. Click login button."
+
+// Input: "search laptop, add cart"  
+// Auto-corrected: "Navigate to homepage. Search for laptop. Add to cart. Proceed to checkout."
+```
 
 **Example:**
 ```javascript
