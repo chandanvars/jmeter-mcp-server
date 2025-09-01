@@ -70,6 +70,10 @@ export class JMXGenerator {
     this.addResultsTreeListener(threadGroupTree);
     threadGroupTree.ele('hashTree');
     
+    // Add Summary Report Listener
+    this.addSummaryReport(threadGroupTree);
+    threadGroupTree.ele('hashTree');
+    
     return doc.end({ prettyPrint: true });
   }
 
@@ -152,7 +156,7 @@ export class JMXGenerator {
     objProp.ele('name').txt('saveConfig');
     const saveConfig = objProp.ele('value', { class: 'SampleSaveConfiguration' });
     
-    // Add various save configuration properties
+    // Add various save configuration properties - Enable more data for debugging
     saveConfig.ele('time').txt('true');
     saveConfig.ele('latency').txt('true');
     saveConfig.ele('timestamp').txt('true');
@@ -165,13 +169,13 @@ export class JMXGenerator {
     saveConfig.ele('encoding').txt('false');
     saveConfig.ele('assertions').txt('true');
     saveConfig.ele('subresults').txt('true');
-    saveConfig.ele('responseData').txt('false');
-    saveConfig.ele('samplerData').txt('false');
+    saveConfig.ele('responseData').txt('true');  // Enable response data for debugging
+    saveConfig.ele('samplerData').txt('true');   // Enable sampler data for debugging
     saveConfig.ele('xml').txt('false');
     saveConfig.ele('fieldNames').txt('true');
-    saveConfig.ele('responseHeaders').txt('false');
-    saveConfig.ele('requestHeaders').txt('false');
-    saveConfig.ele('responseDataOnError').txt('false');
+    saveConfig.ele('responseHeaders').txt('true');  // Enable response headers for debugging
+    saveConfig.ele('requestHeaders').txt('true');   // Enable request headers for debugging
+    saveConfig.ele('responseDataOnError').txt('true');  // Show response data on errors
     saveConfig.ele('saveAssertionResultsFailureMessage').txt('true');
     saveConfig.ele('assertionsResultsToSave').txt('0');
     saveConfig.ele('bytes').txt('true');
@@ -208,6 +212,10 @@ export class JMXGenerator {
     this.configGenerator.addHTTPRequestDefaults(threadGroupTree, params.baseUrl);
     threadGroupTree.ele('hashTree');
     
+    // Add Cookie Manager - CRITICAL for UI authentication flows
+    this.addCookieManager(threadGroupTree);
+    threadGroupTree.ele('hashTree');
+    
     // Add Header Manager with common headers for UI interactions
     const uiHeaders = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -235,11 +243,84 @@ export class JMXGenerator {
       }
     });
     
+    // Add Think Time Timer
+    this.addUniformRandomTimer(threadGroupTree, 1000, 2000);
+    threadGroupTree.ele('hashTree');
+    
     // Add Results Tree Listener
     this.addResultsTreeListener(threadGroupTree);
     threadGroupTree.ele('hashTree');
     
+    // Add Summary Report
+    this.addSummaryReport(threadGroupTree);
+    threadGroupTree.ele('hashTree');
+    
     return doc.end({ prettyPrint: true });
+  }
+
+  /**
+   * Add Cookie Manager for session management
+   */
+  addCookieManager(parent) {
+    const cookieManager = parent.ele('CookieManager', {
+      guiclass: 'CookiePanel',
+      testclass: 'CookieManager',
+      testname: 'HTTP Cookie Manager',
+      enabled: 'true'
+    });
+    
+    cookieManager.ele('collectionProp', { name: 'CookieManager.cookies' }).txt('');
+    cookieManager.ele('boolProp', { name: 'CookieManager.clearEachIteration' }).txt('true');
+    cookieManager.ele('boolProp', { name: 'CookieManager.controlledByThreadGroup' }).txt('false');
+  }
+
+  /**
+   * Add Summary Report listener
+   */
+  addSummaryReport(parent) {
+    const summaryReport = parent.ele('ResultCollector', {
+      guiclass: 'SummaryReport',
+      testclass: 'ResultCollector',
+      testname: 'Summary Report',
+      enabled: 'true'
+    });
+    
+    summaryReport.ele('boolProp', { name: 'ResultCollector.error_logging' }).txt('false');
+    
+    const objProp = summaryReport.ele('objProp');
+    objProp.ele('name').txt('saveConfig');
+    const saveConfig = objProp.ele('value', { class: 'SampleSaveConfiguration' });
+    
+    // Add save configuration properties (same as Results Tree but optimized for summary)
+    saveConfig.ele('time').txt('true');
+    saveConfig.ele('latency').txt('true');
+    saveConfig.ele('timestamp').txt('true');
+    saveConfig.ele('success').txt('true');
+    saveConfig.ele('label').txt('true');
+    saveConfig.ele('code').txt('true');
+    saveConfig.ele('message').txt('true');
+    saveConfig.ele('threadName').txt('true');
+    saveConfig.ele('dataType').txt('true');
+    saveConfig.ele('encoding').txt('false');
+    saveConfig.ele('assertions').txt('true');
+    saveConfig.ele('subresults').txt('true');
+    saveConfig.ele('responseData').txt('false');
+    saveConfig.ele('samplerData').txt('false');
+    saveConfig.ele('xml').txt('false');
+    saveConfig.ele('fieldNames').txt('true');
+    saveConfig.ele('responseHeaders').txt('false');
+    saveConfig.ele('requestHeaders').txt('false');
+    saveConfig.ele('responseDataOnError').txt('false');
+    saveConfig.ele('saveAssertionResultsFailureMessage').txt('true');
+    saveConfig.ele('assertionsResultsToSave').txt('0');
+    saveConfig.ele('bytes').txt('true');
+    saveConfig.ele('sentBytes').txt('true');
+    saveConfig.ele('url').txt('true');
+    saveConfig.ele('threadCounts').txt('true');
+    saveConfig.ele('idleTime').txt('true');
+    saveConfig.ele('connectTime').txt('true');
+    
+    summaryReport.ele('stringProp', { name: 'filename' }).txt('');
   }
 
   addUniformRandomTimer(parent, constantDelay, randomRange) {
