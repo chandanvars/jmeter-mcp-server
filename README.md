@@ -190,6 +190,7 @@ Create sophisticated UI testing scenarios with **intelligent auto-correction**:
 - 📱 **Responsive design testing**
 - 🌍 **Cross-browser simulation**
 - 🍪 **Session management and cookies**
+- 📦 **InvenTree integration** (purchase orders, inventory management)
 
 **Auto-Correction Examples:**
 ```javascript
@@ -198,10 +199,14 @@ Create sophisticated UI testing scenarios with **intelligent auto-correction**:
 
 // Input: "search laptop, add cart"  
 // Auto-corrected: "Navigate to homepage. Search for laptop. Add to cart. Proceed to checkout."
+
+// Input: "inventree purchase order"
+// Auto-corrected: "Navigate to InvenTree login. Authenticate with token. Create purchase order. Add items. Submit order."
 ```
 
-**Example:**
+**Examples:**
 ```javascript
+// E-commerce flow
 {
   "baseUrl": "https://demo.opencart.com",
   "flowDescription": "Navigate to login page, enter credentials, verify dashboard appears",
@@ -210,31 +215,21 @@ Create sophisticated UI testing scenarios with **intelligent auto-correction**:
   "rampUp": 30,
   "duration": 300
 }
-```
 
-### 4. 📦 **generate_inventree_test** - InvenTree API Specialized Testing
-Optimized testing for InvenTree inventory management systems:
-
-**Features:**
-- Pre-configured InvenTree endpoints
-- Purchase order creation workflows
-- Sales order management testing
-- Inventory tracking scenarios
-- Token-based authentication
-- Real demo environment integration
-- Counter management and ID generation
-
-**Example:**
-```javascript
+// InvenTree workflow
 {
-  "numThreads": 5,
-  "rampUpTime": 60,
-  "loops": 3,
-  "baseUrl": "https://demo.inventree.org"
+  "baseUrl": "https://demo.inventree.org",
+  "flowDescription": "Login to InvenTree, create purchase order, add supplier, add line items, submit order",
+  "testName": "InvenTree Purchase Order Flow",
+  "threadCount": 3,
+  "rampUp": 60,
+  "duration": 180
+}
+  "duration": 300
 }
 ```
 
-### 5. � **get_templates** - Pre-built Testing Templates
+### 4. 🎭 **get_templates** - Pre-built Testing Templates
 Access professionally crafted templates:
 
 **Available Templates:**
@@ -245,13 +240,14 @@ Access professionally crafted templates:
 - `database` - Database performance testing
 - `ui_testing` - Web UI automation testing
 - `load_testing` - High-volume load testing
+- `inventree` - InvenTree inventory management testing
 
 **Example:**
 ```javascript
 {"templateType": "rest_api"}
 ```
 
-### 6. 🔧 **validate_jmx** - Test Validation
+### 5. 🔧 **validate_jmx** - Test Validation
 Enhance and validate JMeter scripts:
 
 **Features:**
@@ -390,7 +386,7 @@ curl http://your-server:3000/health
   "version": "1.0.0",
   "transport": "http-sse",
   "endpoint": "/message",
-  "tools": 5
+  "tools": 4
 }
 
 # Monitor server uptime
@@ -495,14 +491,16 @@ server {
 
 #### VS Code Integration
 
-**Method 1: Local Stdio Mode (Recommended for Development)**
-Create a `.vscode/mcp.json` file in your workspace:
+Configure the JMeter MCP Server in VS Code using one of the following JSON configurations:
+
+**Method 1: STDIO Mode (Local Development)**
+Add to your Claude Desktop `claude_desktop_config.json`:
 ```json
 {
-  "servers": {
-    "jmeter-mcp": {
+  "mcpServers": {
+    "jmeter-generator": {
       "command": "node",
-      "args": ["src/index.js"],
+      "args": ["c:/path/to/jmeter-mcp-server/src/index.js", "--stdio"],
       "env": {
         "NODE_ENV": "development"
       }
@@ -511,15 +509,46 @@ Create a `.vscode/mcp.json` file in your workspace:
 }
 ```
 
-**Method 2: Remote HTTP Mode (Recommended for Teams)**
-For remote server connections, configure VS Code to connect to HTTP transport:
+For VS Code MCP extension, create `.vscode/mcp.json`:
+```json
+{
+  "servers": {
+    "jmeter-mcp": {
+      "command": "node",
+      "args": ["src/index.js", "--stdio"],
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  }
+}
+```
+
+**Method 2: HTTP Mode (Remote/Production)**
+For Claude Desktop with HTTP transport:
+```json
+{
+  "mcpServers": {
+    "jmeter-generator": {
+      "url": "http://your-server:3000/mcp",
+      "transport": "http"
+    }
+  }
+}
+```
+
+For VS Code with HTTP transport:
 ```json
 {
   "servers": {
     "jmeter-mcp-remote": {
-      "url": "http://your-server:3000/message",
-      "transport": "sse",
-      "healthCheck": "http://your-server:3000/health"
+      "url": "http://your-server:3000/mcp",
+      "transport": "http",
+      "timeout": 30000,
+      "healthCheck": {
+        "url": "http://your-server:3000/health",
+        "interval": 60000
+      }
     }
   }
 }
@@ -1015,7 +1044,7 @@ curl -X POST http://localhost:3000/message \
   "version": "1.0.0",
   "transport": "http-sse",
   "endpoint": "/message",
-  "tools": 5
+  "tools": 4
 }
 ```
 

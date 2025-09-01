@@ -207,7 +207,6 @@ export class UIFlowHandler {
           method: 'GET',
           path: navPath,
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
           },
           extractors: [],
@@ -228,7 +227,6 @@ export class UIFlowHandler {
           method: 'GET', // Validation request
           path: '/validate_field',
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'X-Requested-With': 'XMLHttpRequest'
           },
           extractors: [],
@@ -248,14 +246,12 @@ export class UIFlowHandler {
             method: 'POST',
             path: '/authenticate',
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               'Content-Type': 'application/x-www-form-urlencoded',
               'Referer': `${baseUrl}/login`
             },
-            body: 'username=tomsmith&password=SuperSecretPassword%21',
+            body: 'username=tomsmith&password=SuperSecretPassword!',
             extractors: [
               {
-                type: 'regex',
                 variableName: 'loginResult',
                 regex: 'You logged into a secure area!',
                 defaultValue: 'LOGIN_FAILED'
@@ -280,7 +276,6 @@ export class UIFlowHandler {
           method: 'GET',
           path: '/secure', // For post-login navigation
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
           },
           extractors: this.getCommonExtractors(step),
@@ -297,34 +292,13 @@ export class UIFlowHandler {
         };
 
       case 'fill':
-        // Fill actions usually don't generate immediate requests
-        // but we can create a validation request
-        return {
-          name: `${counter}. Form Input - ${step.description}`,
-          method: 'POST',
-          path: '/validate',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          body: this.generateFormData(step),
-          extractors: this.getCommonExtractors(step),
-          assertions: [
-            {
-              type: 'responseCode',
-              value: '200'
-            }
-          ]
-        };
-
       case 'submit':
         return {
           name: `${counter}. Form Submit - ${step.description}`,
           method: 'POST',
           path: '/submit',
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            'Content-Type': 'application/x-www-form-urlencoded'
           },
           body: 'action=submit',
           extractors: this.getCommonExtractors(step),

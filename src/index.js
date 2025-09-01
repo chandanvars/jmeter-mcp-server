@@ -464,34 +464,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       }
     },
     {
-      name: 'generate_inventree_test',
-      description: 'Generate InvenTree API test with authentication and purchase order creation',
-      category: 'API Testing',
-      icon: '📦',
-      tags: ['inventree', 'purchase-order', 'authentication', 'api'],
-      examples: [
-        {
-          name: 'InvenTree Purchase Order Test',
-          description: 'Complete test for InvenTree purchase order API with token auth',
-          parameters: {
-            numThreads: 5,
-            rampUpTime: 60,
-            loops: 3
-          }
-        }
-      ],
-      inputSchema: {
-        type: 'object',
-        title: 'InvenTree Test Configuration',
-        properties: {
-          numThreads: { type: 'number', title: 'Number of Users', default: 5, minimum: 1 },
-          rampUpTime: { type: 'number', title: 'Ramp-up Time (seconds)', default: 60, minimum: 1 },
-          loops: { type: 'number', title: 'Loop Count', default: 3, minimum: 1 },
-          baseUrl: { type: 'string', title: 'InvenTree Base URL', default: 'https://demo.inventree.org', format: 'uri' }
-        }
-      }
-    },
-    {
       name: 'get_templates',
       description: 'Get pre-built JMeter test templates for common testing scenarios',
       category: 'Templates',
@@ -652,10 +624,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await jmeterHandler.generateFromApiSchema(args);
         break;
         
-      case 'generate_inventree_test':
-        result = await jmeterHandler.generateInventreeTestPlan(args);
-        break;
-        
       case 'get_templates':
         result = await templateHandler.getTemplate(args);
         break;
@@ -665,7 +633,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
         
       default:
-        throw new Error(`Unknown tool: ${name}. Available tools: generate_jmeter_script, generate_from_api_schema, generate_inventree_test, get_templates, generate_ui_flow_script`);
+        throw new Error(`Unknown tool: ${name}. Available tools: generate_jmeter_script, generate_from_api_schema, get_templates, generate_ui_flow_script`);
     }
 
     // Ensure result has proper structure
@@ -784,9 +752,8 @@ async function main() {
     console.error(`🛠️  Available MCP Tools:`);
     console.error(`   1. generate_jmeter_script - Generate comprehensive JMeter test scripts`);
     console.error(`   2. generate_from_api_schema - Generate tests from API schema/Swagger`);
-    console.error(`   3. generate_inventree_test - Generate InvenTree API test plans`);
-    console.error(`   4. get_templates - Get pre-built JMeter test templates`);
-    console.error(`   5. generate_ui_flow_script - Generate tests from natural language UI flows`);
+    console.error(`   3. get_templates - Get pre-built JMeter test templates`);
+    console.error(`   4. generate_ui_flow_script - Generate tests from natural language UI flows (includes InvenTree support)`);
     
     console.error(`📁 Output Monitoring: Enabled (./output, ./src/output, ./)`);
     console.error(`🔄 Auto-stop on file generation: Enabled`);
@@ -841,7 +808,6 @@ async function main() {
             tools: [
               'generate_jmeter_script',
               'generate_from_api_schema', 
-              'generate_inventree_test',
               'get_templates',
               'generate_ui_flow_script'
             ],
