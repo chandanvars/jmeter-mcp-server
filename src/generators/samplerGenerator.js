@@ -5,7 +5,7 @@ export class SamplerGenerator {
     const sampler = parent.ele('HTTPSamplerProxy', {
       guiclass: 'HttpTestSampleGui',
       testclass: 'HTTPSamplerProxy',
-      testname: request.name,
+      testname: request.name || 'HTTP Request',
       enabled: 'true'
     });
 
@@ -24,11 +24,6 @@ export class SamplerGenerator {
     
     const collectionProp = httpArguments.ele('collectionProp', { name: 'Arguments.arguments' });
     
-    // Ensure it's properly closed even when empty
-    if (!request.body && !request.queryParams) {
-      collectionProp.txt('');
-    }
-    
     // Handle request body for POST/PUT/PATCH methods
     if (request.body && ['POST', 'PUT', 'PATCH'].includes(request.method.toUpperCase())) {
       sampler.ele('boolProp', { name: 'HTTPSampler.postBodyRaw' }).txt('true');
@@ -40,29 +35,30 @@ export class SamplerGenerator {
       httpArg.ele('boolProp', { name: 'HTTPArgument.always_encode' }).txt('false');
       httpArg.ele('stringProp', { name: 'Argument.value' }).txt(request.body);
       httpArg.ele('stringProp', { name: 'Argument.metadata' }).txt('=');
-    }
-    
-    // Handle query parameters if present
-    if (request.queryParams) {
+    } else if (request.queryParams) {
+      // Handle query parameters for GET and other methods
       Object.entries(request.queryParams).forEach(([paramName, paramValue]) => {
         const httpArg = collectionProp.ele('elementProp', {
           name: paramName,
           elementType: 'HTTPArgument'
         });
         httpArg.ele('boolProp', { name: 'HTTPArgument.always_encode' }).txt('false');
-        httpArg.ele('stringProp', { name: 'Argument.value' }).txt(paramValue);
+        httpArg.ele('stringProp', { name: 'Argument.value' }).txt(String(paramValue || ''));
         httpArg.ele('stringProp', { name: 'Argument.metadata' }).txt('=');
         httpArg.ele('stringProp', { name: 'Argument.name' }).txt(paramName);
         httpArg.ele('boolProp', { name: 'HTTPArgument.use_equals' }).txt('true');
       });
+    } else {
+      // Ensure empty collection is properly formed
+      collectionProp.txt('');
     }
 
     sampler.ele('stringProp', { name: 'HTTPSampler.domain' }).txt(url.hostname);
     sampler.ele('stringProp', { name: 'HTTPSampler.port' }).txt(url.port || (url.protocol === 'https:' ? '443' : '80'));
     sampler.ele('stringProp', { name: 'HTTPSampler.protocol' }).txt(url.protocol.replace(':', ''));
     sampler.ele('stringProp', { name: 'HTTPSampler.contentEncoding' }).txt('');
-    sampler.ele('stringProp', { name: 'HTTPSampler.path' }).txt(request.path);
-    sampler.ele('stringProp', { name: 'HTTPSampler.method' }).txt(request.method);
+    sampler.ele('stringProp', { name: 'HTTPSampler.path' }).txt(request.path || '/');
+    sampler.ele('stringProp', { name: 'HTTPSampler.method' }).txt(request.method || 'GET');
     sampler.ele('boolProp', { name: 'HTTPSampler.follow_redirects' }).txt('true');
     sampler.ele('boolProp', { name: 'HTTPSampler.auto_redirects' }).txt('false');
     sampler.ele('boolProp', { name: 'HTTPSampler.use_keepalive' }).txt('true');

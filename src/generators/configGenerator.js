@@ -33,19 +33,21 @@ export class ConfigGenerator {
     const csvDataSet = parent.ele('CSVDataSet', {
       guiclass: 'TestBeanGUI',
       testclass: 'CSVDataSet',
-      testname: 'CSV Data Set Config',
+      testname: config.testname || 'CSV Data Set Config',
       enabled: 'true'
     });
 
-    csvDataSet.ele('stringProp', { name: 'filename' }).txt(config.fileName);
-    csvDataSet.ele('stringProp', { name: 'fileEncoding' }).txt('UTF-8');
-    csvDataSet.ele('stringProp', { name: 'variableNames' }).txt(config.variableNames);
-    csvDataSet.ele('boolProp', { name: 'ignoreFirstLine' }).txt('true');
+    // Handle filename - use provided fileName or filename, ensure it's not empty
+    const fileName = config.fileName || config.filename || config.variableNames + '_data.csv';
+    csvDataSet.ele('stringProp', { name: 'filename' }).txt(fileName);
+    csvDataSet.ele('stringProp', { name: 'fileEncoding' }).txt(config.fileEncoding || 'UTF-8');
+    csvDataSet.ele('stringProp', { name: 'variableNames' }).txt(config.variableNames || '');
+    csvDataSet.ele('boolProp', { name: 'ignoreFirstLine' }).txt(String(config.ignoreFirstLine !== false));
     csvDataSet.ele('stringProp', { name: 'delimiter' }).txt(config.delimiter || ',');
-    csvDataSet.ele('boolProp', { name: 'quotedData' }).txt('false');
-    csvDataSet.ele('boolProp', { name: 'recycle' }).txt('true');
-    csvDataSet.ele('boolProp', { name: 'stopThread' }).txt('false');
-    csvDataSet.ele('stringProp', { name: 'shareMode' }).txt('shareMode.all');
+    csvDataSet.ele('boolProp', { name: 'quotedData' }).txt(String(config.quotedData || false));
+    csvDataSet.ele('boolProp', { name: 'recycle' }).txt(String(config.recycle !== false));
+    csvDataSet.ele('boolProp', { name: 'stopThread' }).txt(String(config.stopThread || false));
+    csvDataSet.ele('stringProp', { name: 'shareMode' }).txt(config.shareMode || 'shareMode.all');
   }
 
   addHeaderManager(parent, headers) {

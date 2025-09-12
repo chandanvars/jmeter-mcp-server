@@ -109,7 +109,7 @@ export class JMXGenerator {
     const threadGroup = parent.ele('ThreadGroup', {
       guiclass: 'ThreadGroupGui',
       testclass: 'ThreadGroup',
-      testname: 'Thread Group',
+      testname: config.testname || 'Thread Group',
       enabled: 'true'
     });
     
@@ -126,15 +126,27 @@ export class JMXGenerator {
       enabled: 'true'
     });
     
-    loopController.ele('boolProp', { name: 'LoopController.continue_forever' }).txt('false');
-    loopController.ele('stringProp', { name: 'LoopController.loops' }).txt(String(config.loops || 1));
+    // Handle different loop configurations
+    const loops = config.duration ? -1 : (config.loops || 1);
+    const continueForever = config.duration ? true : false;
     
-    // Thread Group properties in order - always provide explicit text content
-    threadGroup.ele('stringProp', { name: 'ThreadGroup.num_threads' }).txt(String(config.numThreads || 10));
-    threadGroup.ele('stringProp', { name: 'ThreadGroup.ramp_time' }).txt(String(config.rampUpTime || 10));
-    threadGroup.ele('boolProp', { name: 'ThreadGroup.scheduler' }).txt('false');
-    threadGroup.ele('stringProp', { name: 'ThreadGroup.duration' }).txt('');  // Empty but explicit
-    threadGroup.ele('stringProp', { name: 'ThreadGroup.delay' }).txt('');     // Empty but explicit
+    loopController.ele('boolProp', { name: 'LoopController.continue_forever' }).txt(String(continueForever));
+    loopController.ele('stringProp', { name: 'LoopController.loops' }).txt(String(loops));
+    
+    // Thread Group properties in order - handle multiple parameter formats
+    const numThreads = config.threads || config.numThreads || 10;
+    const rampUpTime = config.rampUp || config.rampUpTime || 10;
+    const duration = config.duration || '';
+    const delay = config.delay || '';
+    
+    threadGroup.ele('stringProp', { name: 'ThreadGroup.num_threads' }).txt(String(numThreads));
+    threadGroup.ele('stringProp', { name: 'ThreadGroup.ramp_time' }).txt(String(rampUpTime));
+    
+    // Handle scheduler - enable it only if duration is specified
+    const useScheduler = Boolean(duration);
+    threadGroup.ele('boolProp', { name: 'ThreadGroup.scheduler' }).txt(String(useScheduler));
+    threadGroup.ele('stringProp', { name: 'ThreadGroup.duration' }).txt(String(duration));
+    threadGroup.ele('stringProp', { name: 'ThreadGroup.delay' }).txt(String(delay));
     threadGroup.ele('boolProp', { name: 'ThreadGroup.same_user_on_next_iteration' }).txt('true');
   }
 
