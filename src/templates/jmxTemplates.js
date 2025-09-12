@@ -1,4 +1,40 @@
 export const templates = {
+  load_test: {
+    testName: "Load Test Template",
+    description: "Basic load test configuration",
+    baseUrl: "https://api.example.com",
+    threadGroup: {
+      threads: 50,
+      rampUp: 120,
+      duration: 300
+    },
+    requests: [
+      {
+        name: "Homepage",
+        method: "GET",
+        path: "/",
+        headers: {
+          "User-Agent": "JMeter Load Test"
+        }
+      },
+      {
+        name: "API Health Check",
+        method: "GET", 
+        path: "/health",
+        assertions: [
+          {
+            type: "response_code",
+            value: "200"
+          }
+        ]
+      }
+    ],
+    randomTimer: {
+      constantDelay: 1000,
+      randomRange: 2000
+    }
+  },
+
   rest_api: {
     testName: "REST API Test",
     baseUrl: "https://api.example.com",
