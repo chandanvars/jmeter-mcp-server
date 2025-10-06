@@ -8,6 +8,9 @@ import { JMXGenerator } from '../generators/jmxGenerator.js';
 import { validateTestPlan } from '../utils/validator.js';
 import { FileWriter } from '../utils/fileWriter.js';
 import { ScenarioValidator } from '../validators/scenarioValidator.js';
+import { PromptGenerator } from '../utils/promptGenerator.js';
+import fs from 'fs';
+import path from 'path';
 
 export class UIFlowHandler {
   constructor() {
@@ -15,10 +18,11 @@ export class UIFlowHandler {
     this.jmxGenerator = new JMXGenerator();
     this.fileWriter = new FileWriter();
     this.scenarioValidator = new ScenarioValidator();
+    this.promptGenerator = new PromptGenerator();
   }
 
   /**
-   * Generate JMeter script from UI flow prompt
+   * Generate JMeter UI flow test prompt (saves to jmx_prompt.prompt.md)
    */
   async generateUIFlowScript(params) {
     try {
@@ -30,150 +34,107 @@ export class UIFlowHandler {
         csvDataSet 
       } = params;
 
-      // STEP 1: Validate and correct the flow description using ScenarioValidator
-      console.log('🔍 Validating and correcting flow description...');
-      const validationResult = await this.scenarioValidator.validateAndCorrect(
-        flowDescription, 
-        { baseUrl, testName }
-      );
-
-      if (!validationResult.success) {
-        throw new Error(`Flow validation failed: ${validationResult.error}`);
-      }
-
-      // Use the corrected flow for parsing
-      const correctedFlowDescription = validationResult.correctedFlow;
-      console.log(`✅ Flow validation complete. Modified: ${validationResult.wasModified}`);
-
-      // STEP 2: Parse the corrected flow description into actionable steps
-      console.log('🔄 Parsing corrected flow into actionable steps...');
-      const parseResult = await this.promptParser.parsePrompt(correctedFlowDescription);
+      console.log(`Generating UI Flow test prompt for: ${testName}`);
       
-      if (!parseResult.success) {
-        // If parsing fails even after validation, try one more correction attempt
-        console.log('⚠️ Initial parsing failed, attempting additional corrections...');
-        const fallbackResult = await this.scenarioValidator.validateAndCorrect(
-          flowDescription + '. Navigate to homepage. Click submit button. Wait for response.',
-          { baseUrl, testName }
-        );
-        
-        if (fallbackResult.success) {
-          const fallbackParseResult = await this.promptParser.parsePrompt(fallbackResult.correctedFlow);
-          if (fallbackParseResult.success) {
-            Object.assign(parseResult, fallbackParseResult);
-            validationResult.corrections.push('Applied fallback corrections for parsing compatibility');
-          } else {
-            throw new Error(`Failed to parse flow description even after corrections: ${parseResult.error}`);
-          }
-        } else {
-          throw new Error(`Failed to parse flow description: ${parseResult.error}`);
-        }
-      }
-
-      // STEP 3: Validate the generated steps
-      console.log('✅ Validating generated flow steps...');
-      const validation = this.promptParser.validateFlowSteps(parseResult.steps);
-      if (!validation.isValid) {
-        throw new Error(`Invalid flow steps: ${validation.errors.join(', ')}`);
-      }
-
-      // Convert parsed steps to HTTP requests (simulated)
-      const httpRequests = this.convertStepsToRequests(parseResult.steps, baseUrl);
-
-      // Create JMeter test plan structure
-      const testPlan = {
+      // Generate UI flow prompt
+      const promptContent = this.promptGenerator.generateUIFlowPrompt({
         testName,
         baseUrl,
-        requests: httpRequests,
+        flowDescription,
         threadGroup,
-        csvDataSet,
-        flowSteps: parseResult.steps,
-        originalPrompt: flowDescription,
-        correctedPrompt: correctedFlowDescription,
-        validationResult // Include validation details in test plan
-      };
+        csvDataSet
+      });
+      
+      if (!promptContent) {
+        throw new Error('Failed to generate UI flow prompt content');
+      }
+      
+      // Save prompt to file
+      const promptPath = this.promptGenerator.savePrompt(promptContent);
+      console.log(`UI Flow prompt saved to: ${promptPath}`);
 
-      // Generate filename for JMX file
-      const jmxFileName = this.fileWriter.generateFilename(testName, 'jmx');
+      // Check if file exists after writing
+      if (!fs.existsSync(promptPath)) {
+        throw new Error(`Failed to write prompt file to: ${promptPath}`);
+      }
       
-      // Generate CSV filename if needed and update JMX
-      let csvFileName = null;
-      let updatedJmxContent = null;
-      
+      // Generate CSV sample data if needed
+      let csvInfo = null;
       if (csvDataSet) {
-        csvFileName = csvDataSet.fileName.endsWith('.csv') ? 
+        const csvFileName = csvDataSet.fileName.endsWith('.csv') ? 
           csvDataSet.fileName : 
           csvDataSet.fileName + '.csv';
         
-        // Write CSV file to sample_data directory
         const csvContent = this.generateCSVContent(csvDataSet);
-        this.fileWriter.writeCSVFile(csvFileName, csvContent);
+        const csvPath = this.fileWriter.writeCSVFile(csvFileName, csvContent);
+        console.log(`CSV sample data written to: ${csvPath}`);
         
-        // Update JMX to reference CSV with relative path
-        const tempJmxContent = this.jmxGenerator.generateUIFlowJMX(testPlan);
-        updatedJmxContent = this.fileWriter.updateCSVReferencesInJMX(tempJmxContent, csvFileName);
-      } else {
-        // Generate JMX content without CSV references
-        updatedJmxContent = this.jmxGenerator.generateUIFlowJMX(testPlan);
-      }
-
-      // Write JMX file to output directory
-      const jmxFilePath = this.fileWriter.writeJMXFile(jmxFileName, updatedJmxContent);
-      
-      // Ensure file was written successfully
-      if (!jmxFilePath) {
-        throw new Error(`Failed to write JMX file: ${jmxFileName}`);
+        csvInfo = {
+          filename: csvFileName,
+          path: csvPath,
+          variables: csvDataSet.variableNames
+        };
       }
 
       // Prepare response
       const content = [
         {
           type: 'text',
-          text: this.generateSuccessMessage(testPlan, parseResult.steps, jmxFilePath, csvFileName, validationResult)
+          text: `🌐 **UI Flow Test Prompt Generated Successfully!**
+
+**Test Plan:** ${testName}
+**Base URL:** ${baseUrl}
+**Flow Description:** ${flowDescription}
+
+📝 **Prompt File Saved:** \`jmx_prompt.prompt.md\`
+
+The prompt has been saved to: \`${promptPath}\`
+
+${csvInfo ? `📊 **CSV Sample Data Created:** \`${csvInfo.filename}\`
+Variables: ${csvInfo.variables}\n\n` : ''}**Next Steps:**
+1. Review the generated prompt at: \`.github/prompts/jmx_prompt.prompt.md\`
+2. Use the \`execute_jmx_prompt\` tool to generate the actual JMX file
+3. The JMX file will be saved to the \`output\` folder
+
+**To generate the JMX file:**
+- Run: \`@workspace /jmx_prompt\` command in Copilot Chat
+- Or call the \`execute_jmx_prompt\` MCP tool
+
+The prompt contains specifications for:
+✅ Natural language UI flow parsing
+✅ Action recognition and conversion
+✅ HTTP request generation
+✅ Session and cookie management
+✅ Dynamic content extraction
+✅ Response validation${csvInfo ? '\n✅ CSV data parameterization' : ''}
+
+**Load Configuration:**
+- **Virtual Users:** ${threadGroup.numThreads}
+- **Ramp-Up Time:** ${threadGroup.rampUpTime} seconds
+- **Loop Count:** ${threadGroup.loops}`
         },
         {
           type: 'file_reference',
-          name: 'jmx_file',
-          file_type: 'jmx',
-          path: jmxFilePath
+          name: 'prompt_file',
+          file_type: 'markdown',
+          path: promptPath
         }
       ];
 
       // Include CSV file in response if generated
-      if (csvDataSet && csvFileName) {
+      if (csvInfo) {
         content.push({
           type: 'file_reference',
-          name: 'csv_file',
+          name: 'csv_sample_data',
           file_type: 'csv',
-          path: this.fileWriter.getAbsoluteCSVPath(csvFileName)
+          path: csvInfo.path
         });
       }
 
-      // Add step-by-step breakdown
-      content.push({
-        type: 'text',
-        text: this.generateStepBreakdown(parseResult.steps)
-      });
-
-      // Add validation report if there were corrections
-      if (validationResult.wasModified) {
-        content.push({
-          type: 'text',
-          text: this.generateValidationReport(validationResult)
-        });
-      }
-
-      return { 
-        content,
-        filePaths: {
-          jmx: jmxFilePath,
-          csv: csvFileName ? this.fileWriter.getAbsoluteCSVPath(csvFileName) : null
-        },
-        validationResult // Include validation result for debugging
-      };
+      return { content };
 
     } catch (error) {
-      throw new Error(`UI Flow script generation failed: ${error.message}`);
+      throw new Error(`UI Flow prompt generation failed: ${error.message}`);
     }
   }
 

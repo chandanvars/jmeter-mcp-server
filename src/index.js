@@ -602,6 +602,39 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
         required: ['testName', 'baseUrl', 'flowDescription']
       }
+    },
+    {
+      name: 'execute_jmx_prompt',
+      description: 'Execute the JMX prompt file to generate actual JMeter JMX test file',
+      category: 'Load Testing',
+      icon: '⚙️',
+      tags: ['jmx', 'generation', 'execution', 'prompt'],
+      examples: [
+        {
+          name: 'Generate JMX from Prompt',
+          description: 'Read jmx_prompt.prompt.md and generate the JMX file',
+          parameters: {}
+        }
+      ],
+      inputSchema: {
+        type: 'object',
+        title: 'JMX Prompt Execution',
+        properties: {
+          promptFile: {
+            type: 'string',
+            title: 'Prompt File Path',
+            description: 'Path to the prompt file (defaults to .github/prompts/jmx_prompt.prompt.md)',
+            default: '.github/prompts/jmx_prompt.prompt.md',
+            ui: { widget: 'text', placeholder: '.github/prompts/jmx_prompt.prompt.md' }
+          },
+          outputFileName: {
+            type: 'string',
+            title: 'Output JMX File Name',
+            description: 'Custom name for the generated JMX file (optional)',
+            ui: { widget: 'text', placeholder: 'my_test.jmx' }
+          }
+        }
+      }
     }
     ];
   
@@ -632,8 +665,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         result = await generateUIFlowScript(args);
         break;
         
+      case 'execute_jmx_prompt':
+        result = await executeJmxPrompt(args);
+        break;
+        
       default:
-        throw new Error(`Unknown tool: ${name}. Available tools: generate_jmeter_script, generate_from_api_schema, get_templates, generate_ui_flow_script`);
+        throw new Error(`Unknown tool: ${name}. Available tools: generate_jmeter_script, generate_from_api_schema, get_templates, generate_ui_flow_script, execute_jmx_prompt`);
     }
 
     // Ensure result has proper structure
@@ -731,6 +768,214 @@ ${error.message}
   }
 }
 
+// Execute JMX Prompt Function - Generates actual JMX file from prompt
+async function executeJmxPrompt(args) {
+  try {
+    const { promptFile = '.github/prompts/jmx_prompt.prompt.md', outputFileName } = args;
+    
+    logger.info('Executing JMX prompt to generate JMX file...');
+    
+    // Import necessary modules
+    const { PromptGenerator } = await import('./utils/promptGenerator.js');
+    const promptGenerator = new PromptGenerator();
+    
+    // Read the prompt file
+    const promptPath = path.join(process.cwd(), promptFile);
+    
+    if (!fs.existsSync(promptPath)) {
+      throw new Error(`Prompt file not found at: ${promptPath}. Please generate a test configuration first using one of the generation tools.`);
+    }
+    
+    const promptContent = fs.readFileSync(promptPath, 'utf8');
+    logger.info('Prompt file read successfully');
+    
+    // Parse the prompt content to extract test configuration
+    const config = parsePromptContent(promptContent);
+    
+    if (!config) {
+      throw new Error('Failed to parse prompt content. The prompt file may be malformed.');
+    }
+    
+    // Generate JMX content from the parsed configuration
+    const jmxContent = jmeterHandler.jmxGenerator.generate(config);
+    
+    if (!jmxContent) {
+      throw new Error('Failed to generate JMX content from prompt');
+    }
+    
+    // Determine output filename
+    const safeTestName = jmeterHandler.fileWriter.cleanFilename(
+      outputFileName || config.testName || 'jmeter_test'
+    );
+    const jmxFilename = safeTestName.endsWith('.jmx') ? safeTestName : `${safeTestName}.jmx`;
+    
+    // Write JMX file to output directory
+    const jmxPath = jmeterHandler.fileWriter.writeJMXFile(jmxFilename, jmxContent);
+    logger.info(`JMX file generated at: ${jmxPath}`);
+    
+    // Check if file was written successfully
+    if (!fs.existsSync(jmxPath)) {
+      throw new Error(`Failed to write JMX file to: ${jmxPath}`);
+    }
+    
+    // Generate CSV file if specified in config
+    let csvPath = null;
+    if (config.csvDataSet) {
+      const csvFilename = `${safeTestName}_data.csv`;
+      const csvHeaders = config.csvDataSet.variableNames || '';
+      const csvContent = jmeterHandler.generateCSVContent(csvHeaders, config.csvDataSet.values);
+      csvPath = jmeterHandler.fileWriter.writeCSVFile(csvFilename, csvContent);
+      logger.info(`CSV file generated at: ${csvPath}`);
+    }
+    
+    // Return success response
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ **JMX File Generated Successfully from Prompt!**
+
+**Source Prompt:** \`${promptFile}\`
+**Generated JMX:** \`${jmxFilename}\`
+**Output Path:** \`${jmxPath}\`
+
+**Test Configuration:**
+- **Test Name:** ${config.testName || 'JMeter Test'}
+- **Base URL:** ${config.baseUrl || 'Not specified'}
+- **Requests:** ${config.requests?.length || 0} HTTP samplers
+- **Load Config:** ${config.threadGroup?.numThreads || 10} users, ${config.threadGroup?.rampUpTime || 10}s ramp-up
+
+${csvPath ? `**CSV Data File:** \`${path.basename(csvPath)}\`\n` : ''}**What's Next:**
+1. Open the JMX file in JMeter GUI: \`jmeter -t "${jmxPath}"\`
+2. Or run in CLI mode: \`jmeter -n -t "${jmxPath}" -l results.jtl\`
+3. View results in JMeter or generate HTML report
+
+**Features Included:**
+✅ HTTP samplers with proper configuration
+✅ Thread group with load settings
+✅ Response extractors for correlation
+✅ Assertions for validation
+✅ Result listeners${csvPath ? '\n✅ CSV data parameterization' : ''}
+
+The JMX file is ready for load testing! 🚀`
+        },
+        {
+          type: 'file_reference',
+          name: 'jmx_file',
+          file_type: 'jmx',
+          path: jmxPath
+        }
+      ]
+    };
+    
+  } catch (error) {
+    logger.error('Error executing JMX prompt:', error);
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `❌ **Error executing JMX prompt:**
+
+${error.message}
+
+**Troubleshooting:**
+- Ensure a prompt file has been generated first using one of these tools:
+  - \`generate_jmeter_script\`
+  - \`generate_from_api_schema\`
+  - \`generate_ui_flow_script\`
+- Verify the prompt file exists at: \`.github/prompts/jmx_prompt.prompt.md\`
+- Check that the prompt file contains valid test configuration
+
+**To generate a new prompt:**
+Run one of the test generation tools first, then use \`execute_jmx_prompt\` to create the JMX file.`
+        }
+      ]
+    };
+  }
+}
+
+// Helper function to parse prompt content and extract configuration
+function parsePromptContent(promptContent) {
+  try {
+    const config = {
+      testName: 'JMeter Test',
+      baseUrl: 'https://api.example.com',
+      requests: [],
+      threadGroup: { numThreads: 10, rampUpTime: 10, loops: 1 },
+      csvDataSet: null,
+      defaultHeaders: {},
+      timers: {},
+      listeners: ['view_results_tree']
+    };
+    
+    // Extract test name
+    const testNameMatch = promptContent.match(/\*\*Test Name:\*\*\s*(.+)/i);
+    if (testNameMatch) {
+      config.testName = testNameMatch[1].trim();
+    }
+    
+    // Extract base URL
+    const baseUrlMatch = promptContent.match(/\*\*Base URL:\*\*\s*(.+)/i);
+    if (baseUrlMatch) {
+      config.baseUrl = baseUrlMatch[1].trim();
+    }
+    
+    // Extract thread group settings
+    const threadsMatch = promptContent.match(/Number of Threads \(Users\):\*\*\s*(\d+)/i);
+    if (threadsMatch) {
+      config.threadGroup.numThreads = parseInt(threadsMatch[1], 10);
+    }
+    
+    const rampUpMatch = promptContent.match(/Ramp-Up Time \(seconds\):\*\*\s*(\d+)/i);
+    if (rampUpMatch) {
+      config.threadGroup.rampUpTime = parseInt(rampUpMatch[1], 10);
+    }
+    
+    const loopsMatch = promptContent.match(/Loop Count:\*\*\s*(\d+)/i);
+    if (loopsMatch) {
+      config.threadGroup.loops = parseInt(loopsMatch[1], 10);
+    }
+    
+    // Extract CSV configuration
+    const csvFileMatch = promptContent.match(/\*\*File Name:\*\*\s*(.+)/i);
+    const csvVarsMatch = promptContent.match(/\*\*Variable Names:\*\*\s*(.+)/i);
+    if (csvFileMatch && csvVarsMatch) {
+      config.csvDataSet = {
+        fileName: csvFileMatch[1].trim(),
+        variableNames: csvVarsMatch[1].trim(),
+        delimiter: ',',
+        ignoreFirstLine: true
+      };
+    }
+    
+    // Extract requests (simplified - look for request sections)
+    const requestMatches = promptContent.matchAll(/### Request \d+:\s*(.+)\n[\s\S]*?\*\*Method:\*\*\s*(\w+)\n[\s\S]*?\*\*Path:\*\*\s*(.+)/gi);
+    for (const match of requestMatches) {
+      config.requests.push({
+        name: match[1].trim(),
+        method: match[2].trim(),
+        path: match[3].trim(),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    // If no requests found, add a default one
+    if (config.requests.length === 0) {
+      config.requests.push({
+        name: 'Default Request',
+        method: 'GET',
+        path: '/',
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    
+    return config;
+  } catch (error) {
+    logger.error('Error parsing prompt content:', error);
+    return null;
+  }
+}
+
 // Startup function with enhanced UI information and HTTP transport support
 async function main() {
   try {
@@ -750,10 +995,11 @@ async function main() {
     
     // Display all available tools
     console.error(`🛠️  Available MCP Tools:`);
-    console.error(`   1. generate_jmeter_script - Generate comprehensive JMeter test scripts`);
-    console.error(`   2. generate_from_api_schema - Generate tests from API schema/Swagger`);
+    console.error(`   1. generate_jmeter_script - Generate JMeter test prompts (not JMX files directly)`);
+    console.error(`   2. generate_from_api_schema - Generate API schema test prompts`);
     console.error(`   3. get_templates - Get pre-built JMeter test templates`);
-    console.error(`   4. generate_ui_flow_script - Generate tests from natural language UI flows (includes InvenTree support)`);
+    console.error(`   4. generate_ui_flow_script - Generate UI flow test prompts from natural language`);
+    console.error(`   5. execute_jmx_prompt - Execute prompt to generate actual JMX file`);
     
     console.error(`📁 Output Monitoring: Enabled (./output, ./src/output, ./)`);
     console.error(`🔄 Auto-stop on file generation: Enabled`);
@@ -788,7 +1034,7 @@ async function main() {
             version: serverConfig.version,
             transport: 'streamable-http',
             endpoint: '/mcp',
-            tools: 5
+            tools: 6
           }));
           return;
         }
@@ -809,7 +1055,8 @@ async function main() {
               'generate_jmeter_script',
               'generate_from_api_schema', 
               'get_templates',
-              'generate_ui_flow_script'
+              'generate_ui_flow_script',
+              'execute_jmx_prompt'
             ],
             ui: serverConfig.ui
           }, null, 2));

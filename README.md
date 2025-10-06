@@ -8,11 +8,38 @@ A powerful Model Context Protocol (MCP) server for generating Apache JMeter test
 
 ## 🌟 Overview
 
-The JMeter MCP Server is a comprehensive testing solution that integrates with MCP-compatible clients (like Claude Desktop, VS Code) to generate sophisticated JMeter test plans. It combines traditional performance testing with modern automation to create production-ready test scripts with minimal effort.
+The JMeter MCP Server (`jmeter-generator` v1.0.0) is a comprehensive testing solution that integrates with MCP-compatible clients (like Claude Desktop, VS Code) to generate sophisticated JMeter test plans. It combines traditional performance testing with modern automation to create production-ready test scripts with minimal effort.
+
+**Key Capabilities:**
+- 🚀 5 powerful tools for test generation (including new prompt execution)
+- 🔄 Dual transport modes: Stdio (local) and HTTP/SSE (remote)
+- 🧠 Intelligent scenario validation and auto-correction
+- 📝 **NEW: Prompt-based workflow** for better control and review
+- 📊 Automatic JMX and CSV file generation
+- 🔗 OpenAPI/Swagger schema integration
+- 🌐 Natural language UI flow parsing
+
+## 🆕 NEW: Prompt-Based Workflow
+
+The JMeter MCP Server now uses a **two-step approach** for generating test files:
+
+### Step 1: Generate Test Prompt
+Use any of the generation tools (`generate_jmeter_script`, `generate_ui_flow_script`, `generate_from_api_schema`) to create a structured prompt file at `.github/prompts/jmx_prompt.prompt.md`.
+
+### Step 2: Execute Prompt to Generate JMX
+Use the `execute_jmx_prompt` tool or the `@workspace /jmx_prompt` command in Copilot Chat to generate the actual JMX file in the `output` folder.
+
+**Benefits:**
+- ✅ Review test specifications before generation
+- ✅ Modify prompts to customize tests
+- ✅ Better control over the generation process
+- ✅ Leverage Copilot Chat for JMX generation
+
+**📖 See [PROMPT_WORKFLOW.md](PROMPT_WORKFLOW.md) for detailed documentation**
 
 ## 🔧 NEW: Scenario Validator
 
-**Advanced Auto-Correction Technology** - The built-in Scenario Validator automatically fixes and enhances any UI flow description, ensuring reliable JMX generation from any input:
+**Advanced Auto-Correction Technology** - The built-in Scenario Validator (`src/validators/scenarioValidator.js`) automatically fixes and enhances any UI flow description, ensuring reliable JMX generation from any input:
 
 ✅ **Smart Typo Correction**: Fixes common misspellings ("loggin" → "login", "clik" → "click")  
 ✅ **Flow Enhancement**: Expands minimal descriptions ("login" → complete login flow)  
@@ -26,7 +53,7 @@ Input:  "loggin with wrong spelling, clik button"
 Output: "Navigate to login page. Enter username. Enter password. Click login button. Wait for page load."
 ```
 
-[📖 **Read Full Documentation**](./SCENARIO_VALIDATOR.md)
+The ScenarioValidator is automatically invoked during UI flow script generation to ensure maximum reliability.
 
 ## ⚡ Quick Start
 
@@ -51,11 +78,15 @@ npm run start:http
 # Or specify custom port
 npm run start:server -- --port 8080
 
-# Or start directly
+# Or start directly with custom port
 node src/index.js --http --port 3000
+
+# Development mode with debugging
+npm run dev          # stdio mode with inspector
+npm run dev:http     # HTTP mode with inspector
 ```
 
-**VS Code Integration:** Use `@jmeter-generator` in VS Code chat for instant test generation!
+**VS Code Integration:** Configure the server in your MCP settings for instant test generation!
 
 ## 🚀 Transport Modes
 
@@ -84,9 +115,9 @@ PORT=5000 npm run start:http
 ```
 
 **Server Endpoints:**
-- **MCP Endpoint**: `http://localhost:3000/message` (SSE stream)
+- **MCP Endpoint**: `http://localhost:3000/message` or `/mcp` (SSE stream)
 - **Health Check**: `http://localhost:3000/health`
-- **API Documentation**: `http://localhost:3000/api`
+- **API Documentation**: `http://localhost:3000/api` or `/docs`
 
 **Connection Examples:**
 ```bash
@@ -121,34 +152,57 @@ npm run dev
 
 ## 🛠️ Complete Tool Suite
 
+The JMeter MCP Server provides **4 main tools** for comprehensive test generation:
+
 ### 1. 🚀 **generate_jmeter_script** - Core JMeter Test Generation
 Create comprehensive JMeter test plans with advanced features:
 
 **Features:**
-- Multi-threaded load simulation
-- CSV data parameterization  
-- Response correlation and extraction
+- Multi-threaded load simulation with configurable thread groups
+- CSV data parameterization for data-driven testing
+- Response correlation and extraction (JSON Path, Regex)
 - Multiple timer types (Gaussian, Uniform, Constant Throughput)
 - Custom headers and authentication
 - Response assertions and validations
 - Result collectors and data writers
+- Automatic file generation to `output/` directory
 
 **Example:**
 ```javascript
 {
   "testName": "API Performance Test",
   "baseUrl": "https://api.example.com",
-  "threadGroup": { "numThreads": 50, "rampUpTime": 120, "loops": 10 },
+  "threadGroup": { 
+    "numThreads": 50, 
+    "rampUpTime": 120, 
+    "loops": 10 
+  },
   "requests": [
     {
       "name": "Login",
       "method": "POST", 
       "path": "/auth/login",
+      "headers": { "Content-Type": "application/json" },
       "body": "{\"username\":\"${username}\",\"password\":\"${password}\"}",
-      "extractors": [{"variableName": "authToken", "jsonPath": "$.token"}]
+      "extractors": [
+        {
+          "variableName": "authToken", 
+          "jsonPath": "$.token"
+        }
+      ],
+      "assertions": [
+        {
+          "type": "responseCode",
+          "value": "200"
+        }
+      ]
     }
   ],
-  "csvDataSet": {"fileName": "users.csv", "variableNames": "username,password"}
+  "csvDataSet": {
+    "fileName": "users.csv", 
+    "variableNames": "username,password",
+    "delimiter": ","
+  }
 }
 ```
 
@@ -230,43 +284,24 @@ Create sophisticated UI testing scenarios with **intelligent auto-correction**:
 ```
 
 ### 4. 🎭 **get_templates** - Pre-built Testing Templates
-Access professionally crafted templates:
+Access professionally crafted templates for common testing scenarios:
 
 **Available Templates:**
-- `rest_api` - Complete REST API testing
-- `oauth2` - OAuth2 authentication flows
+- `rest_api` - Complete REST API testing with CRUD operations
 - `graphql` - GraphQL query and mutation testing
-- `microservices` - Microservices architecture testing
+- `soap` - SOAP web service testing
+- `oauth2` - OAuth2 authentication flows
+- `websocket` - WebSocket connection testing
 - `database` - Database performance testing
-- `ui_testing` - Web UI automation testing
-- `load_testing` - High-volume load testing
-- `inventree` - InvenTree inventory management testing
-
-**Example:**
-```javascript
-{"templateType": "rest_api"}
-```
-
-### 5. 🔧 **validate_jmx** - Test Validation
-Enhance and validate JMeter scripts:
-
-**Features:**
-- Performance score analysis
-- Automated issue detection
-- Best practice recommendations
-- Auto-correction capabilities
-- Enhancement suggestions
-- Configuration optimization
-- Security validation
 
 **Example:**
 ```javascript
 {
-  "jmxContent": "<jmeterTestPlan>...</jmeterTestPlan>",
-  "validationMode": "comprehensive",
-  "autoCorrect": true
+  "templateType": "rest_api"
 }
 ```
+
+**Returns:** A complete JMeter test configuration that can be customized for your specific needs.
 
 ## 🔧 Advanced Features
 
@@ -815,7 +850,7 @@ Create live templates in IntelliJ:
 jmeter-mcp-server/
 ├── 📁 src/                         # Source code directory
 │   ├── 🚀 index.js                 # MCP server entry point & initialization
-│   ├── 🖥️ server.js                # Core MCP server implementation
+│   ├── 🖥️ server.js                # Core MCP server implementation class
 │   │
 │   ├── 📁 handlers/                # Request handlers for different tool types
 │   │   ├── 🎯 jmeterHandler.js     # Core JMeter test generation logic
@@ -831,7 +866,7 @@ jmeter-mcp-server/
 │   │   └── 🔧 samplerGenerator.js  # HTTP sampler & request creation
 │   │
 │   ├── 📁 validators/              # Input validation & auto-correction
-│   │   └── ✅ scenarioValidator.js # Smart UI flow validation & correction
+│   │   └── ✅ scenarioValidator.js # Smart UI flow validation & correction (815 lines)
 │   │
 │   ├── 📁 parsers/                 # Natural language processing
 │   │   └── 🧠 promptToFlowParser.js # Convert descriptions to test flows
@@ -873,11 +908,6 @@ jmeter-mcp-server/
 │
 ├── 📁 scripts/                     # Utility scripts & tools
 │   └── 🛠️ jmeter-helper.ps1       # PowerShell helper script for JMeter
-│
-├── 📁 docs/                        # Documentation (if exists)
-│   ├── 📖 API.md                   # API documentation
-│   ├── ⚙️ CONFIG.md               # Configuration guide
-│   └── 🎯 EXAMPLES.md              # Usage examples
 │
 ├── 📁 .vscode/                     # VS Code workspace settings
 │   ├── ⚙️ settings.json            # Editor settings
@@ -1001,22 +1031,19 @@ Generate a JMeter test from the Petstore API schema:
 
 ### Environment Variables
 ```bash
-NODE_ENV=production
-PORT=3000
-MCP_SERVER_NAME=jmeter-generator
-LOG_LEVEL=info
-VALIDATION_ENABLED=true
-MAX_FILE_SIZE=50MB
-OUTPUT_DIRECTORY=./output
-SAMPLE_DATA_DIRECTORY=./sample_data
+NODE_ENV=production          # Environment mode (development/production)
+PORT=3000                    # HTTP server port (for --http mode)
+DEBUG=true                   # Enable verbose logging
 ```
 
+**Note:** The server automatically creates `output/` and `sample_data/` directories if they don't exist.
+
 ### Custom Settings
-Edit `src/config/settings.js`:
-- Validation timeout settings
-- File size limits
-- Output directory preferences
-- Template customizations
+The server uses built-in defaults and environment variables:
+- Output directory: `./output` (auto-created)
+- Sample data directory: `./sample_data` (auto-created)
+- Log file: `jmeter-mcp.log`
+- Default port (HTTP mode): 3000
 
 ## 📊 Performance & Monitoring
 
@@ -1028,25 +1055,29 @@ Edit `src/config/settings.js`:
 
 ### Health Checks
 ```bash
-# Server health (both modes)
-curl http://localhost:3000/health  # HTTP mode
-echo '{"jsonrpc":"2.0","id":1,"method":"ping"}' | npm start  # Stdio mode
+# Server health (HTTP mode only)
+curl http://localhost:3000/health
 
-# Tool availability (HTTP mode)
-curl -X POST http://localhost:3000/message \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
+# API documentation endpoint
+curl http://localhost:3000/api
 
 # Expected health response:
 {
   "status": "healthy",
   "server": "jmeter-generator", 
   "version": "1.0.0",
-  "transport": "http-sse",
-  "endpoint": "/message",
-  "tools": 4
+  "transport": "streamable-http",
+  "endpoint": "/mcp",
+  "tools": 5
 }
+
+# Tool availability (HTTP mode)
+curl -X POST http://localhost:3000/message \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
 ```
+
+**Note:** Stdio mode doesn't have HTTP endpoints. Health checks are only available in HTTP transport mode.
 
 ## 🚀 Deployment Options
 
@@ -1164,18 +1195,27 @@ git commit -m "Add amazing feature"
 git push origin feature/amazing-feature
 ```
 
-### Running Tests
+### Available NPM Scripts
 ```bash
-# Run all tests
-npm test
+# Server Operations
+npm start                  # Start server (stdio mode)
+npm run start:http         # Start server (HTTP mode, port 3000)
+npm run start:server       # Start server (HTTP mode with explicit port)
+npm run dev                # Development mode with debugger (stdio)
+npm run dev:http           # Development mode with debugger (HTTP)
 
-# Test specific components
-npm run test-api
-npm run test-ui
-npm run test-github
+# Testing
+npm test                   # Run server tests
+npm run test-api           # Test API schema handler
+npm run test-xml           # Test XML generation
+npm run test-inventree     # Test InvenTree integration
+npm run test-github        # Test GitHub API integration
 
-# Validate server
-npm run check
+# Utilities
+npm run check              # Syntax check without running
+npm run logs               # Tail log files
+npm run clean              # Clean output directory and logs
+npm run deploy             # Pre-deployment checks
 ```
 
 ## 🐛 Troubleshooting
@@ -1252,11 +1292,10 @@ curl -v http://localhost:3000/api
 
 ## 📚 Documentation
 
-- 📖 [Complete API Documentation](docs/API.md)
 - 🎯 [Ready-to-Use Examples](EXAMPLE_PROMPTS.md)
-- 🚀 [Deployment Guide](DEPLOY.md)
+- 🚀 [Deployment Guide](DEPLOYMENT.md)
 - 🤝 [Contributing Guidelines](CONTRIBUTING.md)
-- 🔧 [Configuration Reference](docs/CONFIG.md)
+- � [Fix Summary](FIX_SUMMARY.md)
 
 ## 🌟 Community & Support
 
@@ -1446,9 +1485,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For support and questions:
 - 🐛 [Create an issue](https://github.com/chandanvars/jmeter-mcp-server/issues/new/choose) for bugs or feature requests
 - 💬 [Start a discussion](https://github.com/chandanvars/jmeter-mcp-server/discussions) for questions and ideas
-- 📚 Check the [documentation](docs/) for detailed guides
-- 🔍 Review the [examples](EXAMPLE_PROMPTS.md) for implementation patterns
+-  Review the [examples](EXAMPLE_PROMPTS.md) for implementation patterns
 - 📖 Read the [deployment guide](DEPLOYMENT.md) for hosting instructions
+- 📝 Check [FIX_SUMMARY.md](FIX_SUMMARY.md) for recent updates and fixes
 
 ## 🗺️ Roadmap
 
