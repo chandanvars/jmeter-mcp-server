@@ -56,7 +56,8 @@ export class JMXTemplates {
   }
 
   createHTTPSampler(request) {
-    const url = new URL(request.url);
+    // DO NOT parse URL - let HTTP Request Defaults handle domain/port/protocol
+    // This ensures JMX files work properly in JMeter GUI
     
     return {
       HTTPSamplerProxy: {

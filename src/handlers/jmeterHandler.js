@@ -1,6 +1,7 @@
 import { JMXGenerator } from '../generators/jmxGenerator.js';
 import { FileWriter } from '../utils/fileWriter.js';
 import { SuccessMessageGenerator } from '../utils/successMessageGenerator.js';
+import { PromptGenerator } from '../utils/promptGenerator.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -12,89 +13,110 @@ export class JMeterHandler {
   constructor() {
     this.jmxGenerator = new JMXGenerator();
     this.fileWriter = new FileWriter();
+    this.promptGenerator = new PromptGenerator();
   }
 
   /**
-   * Generate JMeter script and handle file operations
+   * Generate JMeter script prompt and save to jmx_prompt.prompt.md
    * @param {Object} args - Tool arguments
    * @returns {Object} - MCP response object
    */
   async generateJMeterScript(args) {
     try {
-      console.log(`Generating JMeter script for: ${args.testName}`);
+      console.log(`Generating JMeter test prompt for: ${args.testName}`);
       
-      // Generate JMX content
-      const jmxContent = this.jmxGenerator.generate(args);
+      // Generate prompt content from test configuration
+      const promptContent = this.promptGenerator.generateJMeterPrompt(args);
       
-      if (!jmxContent) {
-        throw new Error('Failed to generate JMX content');
+      if (!promptContent) {
+        throw new Error('Failed to generate prompt content');
       }
       
-      // Clean up test name to create valid filename
-      const safeTestName = this.fileWriter.cleanFilename(args.testName || 'jmeter_test');
-      const jmxFilename = `${safeTestName}.jmx`;
-      
-      // Write JMX file
-      const jmxPath = this.fileWriter.writeJMXFile(jmxFilename, jmxContent);
-      console.log(`JMX file written to: ${jmxPath}`);
+      // Save prompt to file
+      const promptPath = this.promptGenerator.savePrompt(promptContent);
+      console.log(`Prompt saved to: ${promptPath}`);
 
       // Check if file exists after writing
-      if (!fs.existsSync(jmxPath)) {
-        throw new Error(`Failed to write JMX file to: ${jmxPath}`);
+      if (!fs.existsSync(promptPath)) {
+        throw new Error(`Failed to write prompt file to: ${promptPath}`);
       }
       
-      // Generate CSV data if needed
-      let csvPath = null;
+      // Generate CSV data if needed (save sample for reference)
+      let csvInfo = null;
       if (args.csvDataSet) {
+        const safeTestName = this.fileWriter.cleanFilename(args.testName || 'jmeter_test');
         const csvFilename = `${safeTestName}_data.csv`;
         const csvHeaders = args.csvDataSet.variableNames || '';
         const csvContent = this.generateCSVContent(csvHeaders, args.csvDataSet.values);
-        csvPath = this.fileWriter.writeCSVFile(csvFilename, csvContent);
-        console.log(`CSV file written to: ${csvPath}`);
-        
-        // Update JMX file with correct CSV path references
-        const updatedJmxContent = this.fileWriter.updateCSVReferencesInJMX(jmxContent, csvFilename);
-        this.fileWriter.writeJMXFile(jmxFilename, updatedJmxContent);
+        const csvPath = this.fileWriter.writeCSVFile(csvFilename, csvContent);
+        console.log(`CSV sample data written to: ${csvPath}`);
+        csvInfo = {
+          filename: csvFilename,
+          path: csvPath,
+          variables: csvHeaders
+        };
       }
       
-      // Create success response with file references
-      const result = {
-        success: true,
-        message: `JMeter script generated successfully: ${jmxFilename}`,
-        filePaths: {
-          jmx: jmxPath,
-          csv: csvPath
+      // Create success response with prompt file reference
+      const content = [
+        {
+          type: 'text',
+          text: `✅ **JMeter Test Prompt Generated Successfully!**
+
+**Test Configuration:** ${args.testName}
+**Base URL:** ${args.baseUrl}
+**Requests:** ${args.requests ? args.requests.length : 0} HTTP samplers
+**Load Config:** ${args.threadGroup?.numThreads || 10} users, ${args.threadGroup?.rampUpTime || 10}s ramp-up
+
+📝 **Prompt File Saved:** \`${path.basename(promptPath)}\`
+
+The prompt has been saved to: \`${promptPath}\`
+
+${csvInfo ? `📊 **CSV Sample Data Created:** \`${csvInfo.filename}\`
+Variables: ${csvInfo.variables}\n\n` : ''}**Next Steps:**
+1. Review the generated prompt at: \`.github/prompts/jmx_prompt.prompt.md\`
+2. Use the \`execute_jmx_prompt\` tool or command to generate the actual JMX file
+3. The JMX file will be saved to the \`output\` folder
+
+**To generate the JMX file, use one of these methods:**
+- Run: \`@workspace /jmx_prompt\` command in Copilot Chat
+- Call the \`execute_jmx_prompt\` MCP tool
+- Or manually process the prompt file
+
+The prompt contains all the specifications needed to generate a complete JMeter test script with:
+✅ HTTP samplers for all ${args.requests ? args.requests.length : 0} requests
+✅ Thread group configuration (${args.threadGroup?.numThreads || 10} users)
+✅ Response extractors for correlation
+✅ Assertions for validation
+✅ Timers and listeners${csvInfo ? '\n✅ CSV parameterization configuration' : ''}`
         },
-        content: [
-          {
-            type: 'file_reference',
-            name: 'output_file',
-            file_type: 'jmx',
-            path: jmxPath
-          }
-        ]
-      };
-      
-      if (csvPath) {
-        result.content.push({
+        {
           type: 'file_reference',
-          name: 'data_file',
+          name: 'prompt_file',
+          file_type: 'markdown',
+          path: promptPath
+        }
+      ];
+      
+      if (csvInfo) {
+        content.push({
+          type: 'file_reference',
+          name: 'csv_sample_data',
           file_type: 'csv',
-          path: csvPath
+          path: csvInfo.path
         });
       }
       
-      // Generate formatted success message using the shared utility
-      return SuccessMessageGenerator.generateJMeterScriptSuccess(result, args);
+      return { content };
     } catch (error) {
-      console.error(`Error generating JMeter script: ${error.message}`);
+      console.error(`Error generating JMeter prompt: ${error.message}`);
       console.error(error.stack);
       
       return {
         content: [
           {
-            type: 'error',
-            text: `Failed to generate JMeter script: ${error.message}`
+            type: 'text',
+            text: `❌ **Error generating JMeter prompt:** ${error.message}\n\nPlease check your test configuration and try again.`
           }
         ]
       };
@@ -130,113 +152,82 @@ export class JMeterHandler {
   }
 
   /**
-   * Generate JMeter test from API schema (placeholder)
+   * Generate JMeter test prompt from API schema
    * @param {Object} args - Tool arguments
    * @returns {Object} - MCP response object
    */
   async generateFromApiSchema(args) {
     try {
-      // For now, this is a placeholder that converts schema-based args to basic JMeter script
-      console.log(`Generating JMeter script from API schema: ${args.schemaUrl}`);
+      console.log(`Generating JMeter prompt from API schema: ${args.schemaUrl}`);
       
-      // Convert API schema args to basic JMeter format
-      const basicArgs = {
-        testName: 'API Schema Test',
-        baseUrl: args.schemaUrl ? new URL(args.schemaUrl).origin : 'https://api.example.com',
-        requests: args.endpoint ? [{
-          name: `${args.endpoint.method || 'GET'} ${args.endpoint.path || '/'}`,
-          method: args.endpoint.method || 'GET',
-          path: args.endpoint.path || '/',
-          headers: { 'Content-Type': 'application/json' }
-        }] : [{
-          name: 'Default API Request',
-          method: 'GET',
-          path: '/',
-          headers: { 'Content-Type': 'application/json' }
-        }],
-        threadGroup: args.testConfig?.threadGroup || { numThreads: 10, rampUpTime: 30, loops: 5 }
-      };
+      // Generate API schema prompt
+      const promptContent = this.promptGenerator.generateApiSchemaPrompt(args);
       
-      return await this.generateJMeterScript(basicArgs);
+      if (!promptContent) {
+        throw new Error('Failed to generate API schema prompt content');
+      }
+      
+      // Save prompt to file
+      const promptPath = this.promptGenerator.savePrompt(promptContent);
+      console.log(`API Schema prompt saved to: ${promptPath}`);
+
+      // Check if file exists after writing
+      if (!fs.existsSync(promptPath)) {
+        throw new Error(`Failed to write prompt file to: ${promptPath}`);
+      }
+      
+      // Create success response
+      const content = [
+        {
+          type: 'text',
+          text: `✅ **API Schema Test Prompt Generated Successfully!**
+
+**Schema URL:** ${args.schemaUrl}
+**Target Endpoint:** ${args.endpoint?.operationId || args.endpoint?.path || 'All endpoints'}
+${args.authConfig?.method ? `**Authentication:** ${args.authConfig.method}` : ''}
+
+📝 **Prompt File Saved:** \`jmx_prompt.prompt.md\`
+
+The prompt has been saved to: \`${promptPath}\`
+
+**Next Steps:**
+1. Review the generated prompt at: \`.github/prompts/jmx_prompt.prompt.md\`
+2. Use the \`execute_jmx_prompt\` tool to generate the actual JMX file
+3. The JMX file will be saved to the \`output\` folder
+
+**To generate the JMX file:**
+- Run: \`@workspace /jmx_prompt\` command in Copilot Chat
+- Or call the \`execute_jmx_prompt\` MCP tool
+
+The prompt contains specifications for:
+✅ API schema parsing and endpoint extraction
+✅ Authentication flow configuration
+✅ HTTP samplers with proper headers
+✅ Response correlation for tokens
+✅ Load testing configuration`
+        },
+        {
+          type: 'file_reference',
+          name: 'prompt_file',
+          file_type: 'markdown',
+          path: promptPath
+        }
+      ];
+      
+      return { content };
     } catch (error) {
-      console.error(`Error generating from API schema: ${error.message}`);
+      console.error(`Error generating API schema prompt: ${error.message}`);
       return {
         content: [
           {
-            type: 'error',
-            text: `Failed to generate from API schema: ${error.message}`
+            type: 'text',
+            text: `❌ **Error generating API schema prompt:** ${error.message}\n\nPlease check your API schema URL and configuration.`
           }
         ]
       };
     }
   }
 
-  /**
-   * Generate InvenTree test plan (placeholder)
-   * @param {Object} args - Tool arguments
-   * @returns {Object} - MCP response object
-   */
-  async generateInventreeTestPlan(args) {
-    try {
-      console.log('Generating InvenTree API test plan');
-      
-      // Convert InvenTree args to basic JMeter format
-      const basicArgs = {
-        testName: 'InvenTree API Test',
-        baseUrl: args.baseUrl || 'https://demo.inventree.org',
-        requests: [
-          {
-            name: 'Login to InvenTree',
-            method: 'POST',
-            path: '/api/user/token/',
-            headers: { 'Content-Type': 'application/json' },
-            body: '{"username": "admin", "password": "admin"}',
-            extractors: [{
-              variableName: 'authToken',
-              jsonPath: '$.token',
-              defaultValue: ''
-            }]
-          },
-          {
-            name: 'Get Purchase Orders',
-            method: 'GET',
-            path: '/api/order/po/',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': 'Token ${authToken}'
-            }
-          },
-          {
-            name: 'Create Purchase Order',
-            method: 'POST',
-            path: '/api/order/po/',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': 'Token ${authToken}'
-            },
-            body: '{"supplier": 1, "description": "Test PO from JMeter"}'
-          }
-        ],
-        threadGroup: {
-          numThreads: args.numThreads || 5,
-          rampUpTime: args.rampUpTime || 60,
-          loops: args.loops || 3
-        }
-      };
-      
-      return await this.generateJMeterScript(basicArgs);
-    } catch (error) {
-      console.error(`Error generating InvenTree test plan: ${error.message}`);
-      return {
-        content: [
-          {
-            type: 'error',
-            text: `Failed to generate InvenTree test plan: ${error.message}`
-          }
-        ]
-      };
-    }
-  }
 }
 
 export default JMeterHandler;

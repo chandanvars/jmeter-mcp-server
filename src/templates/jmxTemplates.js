@@ -98,5 +98,142 @@ export const templates = {
         ]
       }
     ]
+  },
+
+  inventree: {
+    testName: "InvenTree API Test",
+    baseUrl: "https://demo.inventree.org",
+    threadGroup: {
+      numThreads: 5,
+      rampUpTime: 60,
+      loops: 3
+    },
+    csvDataSet: {
+      fileName: "inventree_data.csv",
+      variableNames: "username,password,supplier_name,part_number"
+    },
+    requests: [
+      {
+        name: "1. Authenticate with InvenTree",
+        method: "POST",
+        path: "/api/user/token/",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: '{"username":"allaccess","password":"nolimits"}',
+        extractors: [
+          {
+            variableName: "auth_token",
+            jsonPath: "$.token",
+            defaultValue: "NO_TOKEN"
+          }
+        ],
+        assertions: [
+          {
+            type: "responseCode",
+            value: "200"
+          }
+        ]
+      },
+      {
+        name: "2. Get Latest Sales Order",
+        method: "GET",
+        path: "/api/order/so/?ordering=-pk&limit=1",
+        headers: {
+          "Authorization": "Token ${auth_token}",
+          "Content-Type": "application/json"
+        },
+        extractors: [
+          {
+            variableName: "last_so_ref",
+            jsonPath: "$[0].reference",
+            defaultValue: "SO0000"
+          }
+        ],
+        assertions: [
+          {
+            type: "responseCode",
+            value: "200"
+          },
+          {
+            type: "containsText",
+            value: "["
+          }
+        ]
+      },
+      {
+        name: "3. Get Supplier for PO",
+        method: "GET",
+        path: "/api/company/?is_supplier=true&limit=1",
+        headers: {
+          "Authorization": "Token ${auth_token}",
+          "Content-Type": "application/json"
+        },
+        extractors: [
+          {
+            variableName: "supplier_id",
+            jsonPath: "$[0].pk",
+            defaultValue: "1"
+          }
+        ],
+        assertions: [
+          {
+            type: "responseCode",
+            value: "200"
+          }
+        ]
+      },
+      {
+        name: "4. Create Purchase Order with PO Pattern",
+        method: "POST",
+        path: "/api/order/po/",
+        headers: {
+          "Authorization": "Token ${auth_token}",
+          "Content-Type": "application/json"
+        },
+        body: '{"supplier":"${supplier_id}","description":"JMeter Load Test PO - Based on SO counter","reference":"PO${__counter(TRUE,)}_${__time(mmss)}","issue_date":"${__time(yyyy-MM-dd)}"}',
+        extractors: [
+          {
+            variableName: "new_po_id",
+            jsonPath: "$.pk",
+            defaultValue: "NO_PO"
+          },
+          {
+            variableName: "new_po_ref",
+            jsonPath: "$.reference",
+            defaultValue: "NO_REF"
+          }
+        ],
+        assertions: [
+          {
+            type: "responseCode",
+            value: "201"
+          },
+          {
+            type: "containsText",
+            value: "PO"
+          }
+        ]
+      },
+      {
+        name: "5. Verify Purchase Order Created",
+        method: "GET",
+        path: "/api/order/po/${new_po_id}/",
+        headers: {
+          "Authorization": "Token ${auth_token}",
+          "Content-Type": "application/json"
+        },
+        assertions: [
+          {
+            type: "responseCode",
+            value: "200"
+          },
+          {
+            type: "containsText",
+            value: "JMeter Load Test PO"
+          }
+        ]
+      }
+    ]
   }
 };
