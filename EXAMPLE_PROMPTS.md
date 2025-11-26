@@ -264,6 +264,11 @@ Generate a basic JMeter test script for testing https://httpbin.org with these r
 Use 5 users, 10-second ramp-up, 3 loops
 ```
 
+### Execute the Generated Test
+```
+Execute the HTTPBin_Basic_API_Test.jmx file in Docker with performance analysis and HTML reports
+```
+
 ### 2. E-commerce API Test
 ```
 Create a JMeter test for an online store API at https://fakestoreapi.com:

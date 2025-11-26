@@ -1,6 +1,4 @@
-import { JMXGenerator } from '../generators/jmxGenerator.js';
 import { FileWriter } from '../utils/fileWriter.js';
-import { SuccessMessageGenerator } from '../utils/successMessageGenerator.js';
 import { PromptGenerator } from '../utils/promptGenerator.js';
 import fs from 'fs';
 import path from 'path';
@@ -11,7 +9,6 @@ import path from 'path';
  */
 export class JMeterHandler {
   constructor() {
-    this.jmxGenerator = new JMXGenerator();
     this.fileWriter = new FileWriter();
     this.promptGenerator = new PromptGenerator();
   }
@@ -150,84 +147,6 @@ The prompt contains all the specifications needed to generate a complete JMeter 
     
     return rows.join('\n');
   }
-
-  /**
-   * Generate JMeter test prompt from API schema
-   * @param {Object} args - Tool arguments
-   * @returns {Object} - MCP response object
-   */
-  async generateFromApiSchema(args) {
-    try {
-      console.log(`Generating JMeter prompt from API schema: ${args.schemaUrl}`);
-      
-      // Generate API schema prompt
-      const promptContent = this.promptGenerator.generateApiSchemaPrompt(args);
-      
-      if (!promptContent) {
-        throw new Error('Failed to generate API schema prompt content');
-      }
-      
-      // Save prompt to file
-      const promptPath = this.promptGenerator.savePrompt(promptContent);
-      console.log(`API Schema prompt saved to: ${promptPath}`);
-
-      // Check if file exists after writing
-      if (!fs.existsSync(promptPath)) {
-        throw new Error(`Failed to write prompt file to: ${promptPath}`);
-      }
-      
-      // Create success response
-      const content = [
-        {
-          type: 'text',
-          text: `✅ **API Schema Test Prompt Generated Successfully!**
-
-**Schema URL:** ${args.schemaUrl}
-**Target Endpoint:** ${args.endpoint?.operationId || args.endpoint?.path || 'All endpoints'}
-${args.authConfig?.method ? `**Authentication:** ${args.authConfig.method}` : ''}
-
-📝 **Prompt File Saved:** \`jmx_prompt.prompt.md\`
-
-The prompt has been saved to: \`${promptPath}\`
-
-**Next Steps:**
-1. Review the generated prompt at: \`.github/prompts/jmx_prompt.prompt.md\`
-2. Use the \`execute_jmx_prompt\` tool to generate the actual JMX file
-3. The JMX file will be saved to the \`output\` folder
-
-**To generate the JMX file:**
-- Run: \`@workspace /jmx_prompt\` command in Copilot Chat
-- Or call the \`execute_jmx_prompt\` MCP tool
-
-The prompt contains specifications for:
-✅ API schema parsing and endpoint extraction
-✅ Authentication flow configuration
-✅ HTTP samplers with proper headers
-✅ Response correlation for tokens
-✅ Load testing configuration`
-        },
-        {
-          type: 'file_reference',
-          name: 'prompt_file',
-          file_type: 'markdown',
-          path: promptPath
-        }
-      ];
-      
-      return { content };
-    } catch (error) {
-      console.error(`Error generating API schema prompt: ${error.message}`);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `❌ **Error generating API schema prompt:** ${error.message}\n\nPlease check your API schema URL and configuration.`
-          }
-        ]
-      };
-    }
-  }
-
 }
 
 export default JMeterHandler;

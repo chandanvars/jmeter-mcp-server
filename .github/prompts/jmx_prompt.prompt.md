@@ -1,68 +1,69 @@
 ---
-mode: agent
+agent: agent
+model: Claude Sonnet 4 (copilot)
 ---
 
 # JMeter Test Generation Specification
 
 ## Test Configuration
 
-**Test Name:** Audit Service API Test
-**Base URL:** https://apim-uat.digiphotoglobal.cn
+**Test Name:** Basic UI Login Test
+**Base URL:** https://the-internet.herokuapp.com
 
 ## Load Configuration
 
-- **Number of Threads (Users):** 1
-- **Ramp-Up Time (seconds):** 10
-- **Loop Count:** -1
+- **Number of Threads (Users):** 3
+- **Ramp-Up Time (seconds):** 15
+- **Loop Count:** 2
 
 ## Test Requests
 
-### Request 1: Upload Metadata Audit
+### Request 1: Open Login Page
 
-- **Method:** POST
-- **Path:** /AuditService/audit/?limit=10&offset=0
+- **Method:** GET
+- **Path:** /login
 - **Headers:**
-  - `Ocp-Apim-Subscription-Key: b8ba05d43f284641a9dc946f7599f7ae`
-  - `Authorization: Bearer 1758972903_iCuhE5ZKb1KJj8cx_mttNFJaW2yP5bqKHTORulXPLW8_dbe41c51bbd05450`
-  - `Content-Type: application/json`
-- **Body:**
-```json
-{
-    "request_id": "f6394d53-01ac-4c3b-af4d-dec7dedeb4b9",
-    "api": "upload_metadata",
-    "source_system": "imix",
-    "status": "SUCCESS",
-    "message": "Metadata upload successful",
-    "request_content": {
-        "site": "demo_site",
-        "venue": "demo_venue",
-        "country": "US",
-        "blob_url": "https://uanosadimix01.blob.core.windows.net/media/3a1dd623-ca4b-4652-b243-7b1b12302a06.jpg",
-        "location": "demo_location",
-        "imix_media_id": "imix_media_123",
-        "media_timestamp": "2025-09-27 14:39:45"
-    },
-    "response_content": {
-        "success": true,
-        "request_id": "5e0c8812-bc38-4b10-afc3-1a0839b109ba",
-        "faces_stored": 1
-    },
-    "request_duration_ms": 709,
-    "model_used": "paravision",
-    "model_call_durations_ms": [248],
-    "model_call_duration_avg_ms": 248
-}
-```
-- **Response Extractors:**
-  - Variable: `C_Result`
-    - Regex: `(.*?)`
-    - Default: `Null`
-  - Variable: `C_JsonResult`
-    - JSON Path: `$.result`
-    - Default: `Null`
+  - `User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36`
 - **Assertions:**
   - Type: responseCode
     - Expected: `200`
+  - Type: containsText
+    - Expected: `Login Page`
+
+### Request 2: Submit Login Form
+
+- **Method:** POST
+- **Path:** /authenticate
+- **Headers:**
+  - `Content-Type: application/x-www-form-urlencoded`
+  - `User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36`
+- **Body:**
+```json
+username=tomsmith&password=SuperSecretPassword!
+```
+- **Response Extractors:**
+  - Variable: `loginSuccess`
+    - Regex: `(You logged into a secure area!)`
+    - Default: `LOGIN_FAILED`
+- **Assertions:**
+  - Type: responseCode
+    - Expected: `200`
+  - Type: containsText
+    - Expected: `You logged into a secure area!`
+
+### Request 3: Access Secure Area
+
+- **Method:** GET
+- **Path:** /secure
+- **Headers:**
+  - `User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36`
+- **Assertions:**
+  - Type: responseCode
+    - Expected: `200`
+  - Type: containsText
+    - Expected: `Secure Area`
+  - Type: containsText
+    - Expected: `Welcome to the Secure Area`
 
 ## CSV Data Configuration
 

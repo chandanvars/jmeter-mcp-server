@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "testName": "Basic_UI_Login_Test",
+    "jmxFile": "Basic_UI_Login_Test.jmx",
+    "timestamp": "2025-11-26T09:01:51.253Z",
+    "duration": 25,
+    "totalSamples": 30
+  },
+  "loadProfile": {
+    "totalUsers": 3,
+    "duration": 19.599,
+    "avgConcurrency": 2,
+    "classification": "Light Load",
+    "loadIntensity": 0.1530690341343946,
+    "peakConcurrency": 3
+  },
+  "responseTimes": {
+    "min": 301,
+    "max": 1991,
+    "avg": 528,
+    "p50": 360,
+    "p90": 1233,
+    "p95": 1244,
+    "p99": 1991,
+    "trend": "Degrading",
+    "variability": 1690,
+    "consistency": 2.356060606060606
+  },
+  "throughput": {
+    "average": 1.53,
+    "peak": 6,
+    "rating": "Low",
+    "stability": 0.3846153846153846,
+    "dataTransferred": 93293
+  },
+  "errors": {
+    "total": 0,
+    "rate": 0,
+    "severity": "None",
+    "types": {},
+    "mostCommon": "None"
+  },
+  "resourceUsage": {
+    "efficiency": 0.97,
+    "rating": "Excellent",
+    "memoryUsage": "2g",
+    "cpuUsage": "2",
+    "concurrencyUtilization": 0.51
+  },
+  "bottlenecks": {
+    "identified": [],
+    "primary": null,
+    "count": 0
+  },
+  "recommendations": [
+    "Consider increasing load to better simulate production conditions",
+    "Consider running longer tests for more reliable results"
+  ],
+  "statistics": {
+    "totalSamples": 30,
+    "successRate": 100,
+    "avgResponseTime": 528,
+    "throughput": 1.53,
+    "errorCount": 0
+  },
+  "trends": {
+    "responseTimeProgression": [
+      {
+        "timestamp": 1764147685000,
+        "avg": 1991
+      },
+      {
+        "timestamp": 1764147690000,
+        "avg": 521.2222222222222
+      },
+      {
+        "timestamp": 1764147695000,
+        "avg": 495.9230769230769
+      },
+      {
+        "timestamp": 1764147700000,
+        "avg": 400
+      },
+      {
+        "timestamp": 1764147705000,
+        "avg": 324
+      }
+    ],
+    "throughputProgression": [
+      {
+        "timestamp": 1764147685000,
+        "value": 0.2
+      },
+      {
+        "timestamp": 1764147690000,
+        "value": 1.8
+      },
+      {
+        "timestamp": 1764147695000,
+        "value": 2.6
+      },
+      {
+        "timestamp": 1764147700000,
+        "value": 1.2
+      },
+      {
+        "timestamp": 1764147705000,
+        "value": 0.2
+      }
+    ],
+    "errorProgression": [
+      {
+        "timestamp": 1764147685000,
+        "rate": 0
+      },
+      {
+        "timestamp": 1764147690000,
+        "rate": 0
+      },
+      {
+        "timestamp": 1764147695000,
+        "rate": 0
+      },
+      {
+        "timestamp": 1764147700000,
+        "rate": 0
+      },
+      {
+        "timestamp": 1764147705000,
+        "rate": 0
+      }
+    ]
+  },
+  "detailedStatistics": {
+    "Access Secure Area": {
+      "transaction": "Access Secure Area",
+      "sampleCount": 6,
+      "errorCount": 0,
+      "errorPct": 0,
+      "meanResTime": 327.1666666666667,
+      "medianResTime": 317.5,
+      "minResTime": 303,
+      "maxResTime": 360,
+      "pct1ResTime": 360,
+      "pct2ResTime": 360,
+      "pct3ResTime": 360,
+      "throughput": 0.4101161995898838,
+      "receivedKBytesPerSec": 1.0260915071770333,
+      "sentKBytesPerSec": 0.3067861414900888
+    },
+    "Open Login Page": {
+      "transaction": "Open Login Page",
+      "sampleCount": 6,
+      "errorCount": 0,
+      "errorPct": 0,
+      "meanResTime": 922.8333333333333,
+      "medianResTime": 823.5,
+      "minResTime": 301,
+      "maxResTime": 1991,
+      "pct1ResTime": 1991,
+      "pct2ResTime": 1991,
+      "pct3ResTime": 1991,
+      "throughput": 0.3720699491504403,
+      "receivedKBytesPerSec": 1.2402937220947536,
+      "sentKBytesPerSec": 0.17713291036214807
+    },
+    "Total": {
+      "transaction": "Total",
+      "sampleCount": 30,
+      "errorCount": 0,
+      "errorPct": 0,
+      "meanResTime": 528.4333333333333,
+      "medianResTime": 360,
+      "minResTime": 301,
+      "maxResTime": 1991,
+      "pct1ResTime": 1184.900000000001,
+      "pct2ResTime": 1580.1499999999994,
+      "pct3ResTime": 1991,
+      "throughput": 1.505797319680771,
+      "receivedKBytesPerSec": 4.572928038573508,
+      "sentKBytesPerSec": 1.396244682653215
+    },
+    "Submit Login Form-1": {
+      "transaction": "Submit Login Form-1",
+      "sampleCount": 6,
+      "errorCount": 0,
+      "errorPct": 0,
+      "meanResTime": 358.5,
+      "medianResTime": 358.5,
+      "minResTime": 313,
+      "maxResTime": 388,
+      "pct1ResTime": 388,
+      "pct2ResTime": 388,
+      "pct3ResTime": 388,
+      "throughput": 0.4101161995898838,
+      "receivedKBytesPerSec": 1.3304746240601504,
+      "sentKBytesPerSec": 0.35084159261790837
+    },
+    "Submit Login Form": {
+      "transaction": "Submit Login Form",
+      "sampleCount": 6,
+      "errorCount": 0,
+      "errorPct": 0,
+      "meanResTime": 696.3333333333333,
+      "medianResTime": 697.5,
+      "minResTime": 624,
+      "maxResTime": 752,
+      "pct1ResTime": 752,
+      "pct2ResTime": 752,
+      "pct3ResTime": 752,
+      "throughput": 0.399493974299221,
+      "receivedKBytesPerSec": 1.8674262600705773,
+      "sentKBytesPerSec": 0.6815585674811905
+    },
+    "Submit Login Form-0": {
+      "transaction": "Submit Login Form-0",
+      "sampleCount": 6,
+      "errorCount": 0,
+      "errorPct": 0,
+      "meanResTime": 337.3333333333333,
+      "medianResTime": 330,
+      "minResTime": 302,
+      "maxResTime": 387,
+      "pct1ResTime": 387,
+      "pct2ResTime": 387,
+      "pct3ResTime": 387,
+      "throughput": 0.4097800846878841,
+      "receivedKBytesPerSec": 0.5861242487365115,
+      "sentKBytesPerSec": 0.34855317750307335
+    }
+  }
+}

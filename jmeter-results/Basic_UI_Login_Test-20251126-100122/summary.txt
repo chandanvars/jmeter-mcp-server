@@ -1,0 +1,4 @@
+📋 Test Summary:
+Test File: Basic_UI_Login_Test.jmx
+Execution Time: Wed Nov 26 10:01:49 CET 2025
+Results Directory: /results/Basic_UI_Login_Test-20251126-100122

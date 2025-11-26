@@ -1,0 +1,116 @@
+```mermaid
+graph TB
+    subgraph "User Layer"
+        USER[👤 User]
+        CLAUDE[🤖 Claude Desktop]
+        VSCODE[📝 VS Code]
+        API[🔗 API Client]
+    end
+
+    subgraph "MCP Server"
+        SERVER[🏗️ MCP Server]
+        TOOL1[⚡ generate_jmeter_script]
+        TOOL2[🐳 execute_jmeter_script]
+        HANDLER[🎯 JMeter Handler]
+    end
+
+    subgraph "File System"
+        JMX[📁 JMX Files]
+        CSV[📊 CSV Data]
+        RESULTS[📈 Results]
+    end
+
+    subgraph "Docker Engine"
+        DOCKER[🐳 Docker]
+        JMETER[⚙️ JMeter Runtime]
+        VOLUMES[🔗 Volume Mounts]
+    end
+
+    subgraph "Analysis Engine"
+        PARSER[📊 JTL Parser]
+        ANALYZER[📈 Stats Analyzer]
+        GENERATOR[📋 Report Generator]
+    end
+
+    subgraph "Report Outputs"
+        HTML[🌐 HTML Report]
+        MD[📝 Markdown]
+        JSON[📊 JSON Data]
+        DASHBOARD[📈 JMeter Dashboard]
+    end
+
+    subgraph "Test Targets"
+        APPS[🎯 Web Apps & APIs]
+    end
+
+    %% Main Flow
+    USER --> CLAUDE
+    USER --> VSCODE
+    USER --> API
+    
+    CLAUDE --> SERVER
+    VSCODE --> SERVER
+    API --> SERVER
+
+    SERVER --> TOOL1
+    SERVER --> TOOL2
+    TOOL1 --> HANDLER
+    TOOL2 --> HANDLER
+
+    HANDLER --> JMX
+    HANDLER --> CSV
+
+    TOOL2 --> DOCKER
+    DOCKER --> JMETER
+    JMX -.-> VOLUMES
+    CSV -.-> VOLUMES
+    RESULTS -.-> VOLUMES
+
+    JMETER --> APPS
+    APPS --> JMETER
+    JMETER --> RESULTS
+
+    RESULTS --> PARSER
+    PARSER --> ANALYZER
+    ANALYZER --> GENERATOR
+
+    GENERATOR --> HTML
+    GENERATOR --> MD
+    GENERATOR --> JSON
+    JMETER --> DASHBOARD
+
+    %% Styling
+    classDef userLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef serverLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef dockerLayer fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef analysisLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef reportLayer fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+    classDef externalLayer fill:#eeeeee,stroke:#424242,stroke-width:2px
+
+    class USER,CLAUDE,VSCODE,API userLayer
+    class SERVER,TOOL1,TOOL2,HANDLER serverLayer
+    class DOCKER,JMETER,VOLUMES dockerLayer
+    class PARSER,ANALYZER,GENERATOR analysisLayer
+    class HTML,MD,JSON,DASHBOARD reportLayer
+    class APPS externalLayer
+```
+
+## Simplified Architecture
+
+### 🏗️ Core Components
+
+**User Layer** → **MCP Server** → **Docker Engine** → **Analysis Engine** → **Report Outputs**
+
+### 🔄 Data Flow
+
+1. **User Input** → MCP Tools → File Generation
+2. **Docker Execution** → JMeter Runtime → Test Results  
+3. **Analysis Pipeline** → Performance Reports
+
+### 🚀 Key Features
+
+- **Complete Automation**: Zero manual intervention
+- **Multiple Formats**: HTML, Markdown, JSON reports
+- **Docker Integration**: Containerized execution
+- **Real-time Analysis**: Performance trend detection
+```

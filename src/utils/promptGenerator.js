@@ -48,7 +48,8 @@ export class PromptGenerator {
 
     // Frontmatter
     sections.push(`---`);
-    sections.push(`mode: agent`);
+    sections.push(`agent: agent`);
+    sections.push(`model: Claude Sonnet 4 (copilot)`);
     sections.push(`---`);
     sections.push('');
 
@@ -228,147 +229,6 @@ export class PromptGenerator {
     sections.push('- Extractors and assertions are in place');
     sections.push('- CSV parameterization is working correctly');
     sections.push('- Thread group settings match the specification');
-
-    return sections.join('\n');
-  }
-
-  /**
-   * Generate UI Flow test prompt
-   * @param {Object} config - UI Flow test configuration
-   * @returns {string} - Generated prompt
-   */
-  generateUIFlowPrompt(config) {
-    const {
-      testName,
-      baseUrl,
-      flowDescription,
-      threadGroup = {},
-      csvDataSet
-    } = config;
-
-    const sections = [];
-
-    // Frontmatter
-    sections.push(`---`);
-    sections.push(`mode: agent`);
-    sections.push(`---`);
-    sections.push('');
-
-    sections.push(`# JMeter UI Flow Test Generation`);
-    sections.push('');
-    sections.push(`## Test Configuration`);
-    sections.push('');
-    sections.push(`**Test Name:** ${testName || 'UI Flow Test'}`);
-    sections.push(`**Base URL:** ${baseUrl || 'https://example.com'}`);
-    sections.push('');
-    sections.push(`## User Flow Description`);
-    sections.push('');
-    sections.push(flowDescription || 'No flow description provided');
-    sections.push('');
-    sections.push(`## Load Configuration`);
-    sections.push('');
-    sections.push(`- **Number of Users:** ${threadGroup.numThreads || 10}`);
-    sections.push(`- **Ramp-Up Time:** ${threadGroup.rampUpTime || 30} seconds`);
-    sections.push(`- **Loop Count:** ${threadGroup.loops || 1}`);
-    sections.push('');
-
-    if (csvDataSet) {
-      sections.push(`## CSV Data Configuration`);
-      sections.push('');
-      sections.push(`- **File Name:** ${csvDataSet.fileName}`);
-      sections.push(`- **Variable Names:** ${csvDataSet.variableNames}`);
-      sections.push('');
-    }
-
-    sections.push('---');
-    sections.push('');
-    sections.push('## Instructions');
-    sections.push('');
-    sections.push('Parse the user flow description above and generate a JMeter test script that:');
-    sections.push('1. Converts natural language actions into HTTP requests');
-    sections.push('2. Handles navigation, form filling, and button clicks');
-    sections.push('3. Includes proper extractors for dynamic content');
-    sections.push('4. Adds assertions to validate responses');
-    sections.push('5. Saves the JMX file to the `output` folder');
-
-    return sections.join('\n');
-  }
-
-  /**
-   * Generate API Schema test prompt
-   * @param {Object} config - API Schema test configuration
-   * @returns {string} - Generated prompt
-   */
-  generateApiSchemaPrompt(config) {
-    const {
-      schemaUrl,
-      endpoint = {},
-      authConfig = {},
-      testConfig = {}
-    } = config;
-
-    const sections = [];
-
-    // Frontmatter
-    sections.push(`---`);
-    sections.push(`mode: agent`);
-    sections.push(`---`);
-    sections.push('');
-
-    sections.push(`# JMeter API Schema Test Generation`);
-    sections.push('');
-    sections.push(`## API Schema Configuration`);
-    sections.push('');
-    sections.push(`**Schema URL:** ${schemaUrl || 'No URL provided'}`);
-    sections.push('');
-    sections.push(`## Target Endpoint`);
-    sections.push('');
-    if (endpoint.operationId) {
-      sections.push(`- **Operation ID:** ${endpoint.operationId}`);
-    }
-    if (endpoint.path) {
-      sections.push(`- **Path:** ${endpoint.path}`);
-    }
-    if (endpoint.method) {
-      sections.push(`- **Method:** ${endpoint.method}`);
-    }
-    if (endpoint.tag) {
-      sections.push(`- **Tag:** ${endpoint.tag}`);
-    }
-    sections.push('');
-
-    if (authConfig.method) {
-      sections.push(`## Authentication Configuration`);
-      sections.push('');
-      sections.push(`- **Method:** ${authConfig.method}`);
-      if (authConfig.credentials) {
-        sections.push('- **Credentials:**');
-        Object.entries(authConfig.credentials).forEach(([key, value]) => {
-          sections.push(`  - ${key}: ${value === '' ? '(empty)' : '***'}`);
-        });
-      }
-      sections.push('');
-    }
-
-    if (testConfig.threadGroup) {
-      sections.push(`## Load Configuration`);
-      sections.push('');
-      sections.push(`- **Number of Users:** ${testConfig.threadGroup.numThreads || 10}`);
-      sections.push(`- **Ramp-Up Time:** ${testConfig.threadGroup.rampUpTime || 30} seconds`);
-      sections.push(`- **Loop Count:** ${testConfig.threadGroup.loops || 5}`);
-      sections.push('');
-    }
-
-    sections.push('---');
-    sections.push('');
-    sections.push('## Instructions');
-    sections.push('');
-    sections.push('1. Fetch and parse the API schema from the URL');
-    sections.push('2. Extract the target endpoint configuration');
-    sections.push('3. Generate authentication request if configured');
-    sections.push('4. Create HTTP samplers for the API endpoint');
-    sections.push('5. Add correlation for authentication tokens');
-    sections.push('6. Save the JMX file to the `output` folder');
 
     return sections.join('\n');
   }
